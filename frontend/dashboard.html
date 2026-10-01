@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="image.png">
+    <title>Analytics | Proposal Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background: #f8f9fa; min-height: 100vh; }
+        .input-field { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+        .input-field:focus { outline: none; border-color: #111; box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+        .card { background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .auth-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .auth-overlay.hidden { display: none; }
+        .auth-modal { background: #fff; border-radius: 16px; padding: 28px; max-width: 340px; width: 90%; }
+        .toast { position: fixed; bottom: 24px; right: 24px; background: #111; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13px; opacity: 0; transform: translateY(8px); transition: all 0.2s; z-index: 200; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .nav-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 10px; color: #9ca3af; transition: all 0.15s; cursor: pointer; text-decoration: none; position: relative; }
+        .nav-icon:hover { background: #f3f4f6; color: #111; }
+        .nav-icon svg { width: 18px; height: 18px; }
+        .nav-icon .tooltip { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #111; color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+        .nav-icon:hover .tooltip { opacity: 1; }
+        .nav-icon.active { background: #111; color: #fff; }
+        .user-badge { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f3f4f6; border-radius: 8px; font-size: 12px; font-weight: 500; color: #374151; }
+        .user-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+        
+        /* Pipeline */
+        .pipeline { display: flex; gap: 1px; background: #e5e7eb; border-radius: 12px; overflow: hidden; }
+        .pipe-stage { flex: 1; background: #fff; padding: 24px 16px; text-align: center; transition: background 0.2s; }
+        .pipe-stage:hover { background: #f9fafb; }
+        .pipe-num { font-size: 28px; font-weight: 700; color: #111; letter-spacing: -1px; }
+        .pipe-label { font-size: 11px; color: #6b7280; margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .pipe-bar { height: 6px; background: #f3f4f6; border-radius: 3px; margin-top: 14px; overflow: hidden; display: flex; }
+        .pipe-ai { background: #111; height: 100%; transition: width 0.5s; }
+        .pipe-man { background: #d1d5db; height: 100%; transition: width 0.5s; }
+        .pipe-sub { font-size: 10px; color: #9ca3af; margin-top: 8px; font-weight: 500; }
+        
+        /* Metrics */
+        .metric { text-align: center; padding: 20px 12px; }
+        .metric-val { font-size: 32px; font-weight: 700; color: #111; }
+        .metric-label { font-size: 11px; color: #9ca3af; margin-top: 2px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-delta { font-size: 12px; margin-top: 8px; font-weight: 600; }
+        .metric-delta.up { color: #16a34a; }
+        .metric-delta.down { color: #dc2626; }
+        .metric-delta.flat { color: #6b7280; }
+        
+        /* Insights */
+        .insight { padding: 16px 18px; border-radius: 10px; margin-bottom: 10px; position: relative; overflow: hidden; }
+        .insight:last-child { margin-bottom: 0; }
+        .insight::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+        .insight-success { background: #f0fdf4; }
+        .insight-success::before { background: #22c55e; }
+        .insight-warn { background: #fffbeb; }
+        .insight-warn::before { background: #f59e0b; }
+        .insight-info { background: #f8fafc; }
+        .insight-info::before { background: #6b7280; }
+        .insight-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .insight-success .insight-title { color: #166534; }
+        .insight-warn .insight-title { color: #92400e; }
+        .insight-info .insight-title { color: #374151; }
+        .insight-text { font-size: 13px; color: #374151; line-height: 1.5; }
+        .insight-text b { font-weight: 600; color: #111; }
+        .insight-action { font-size: 11px; color: #6b7280; margin-top: 6px; font-style: italic; }
+        
+        /* Skills */
+        .skill-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
+        .skill-row:last-child { border-bottom: none; }
+        .skill-name { width: 90px; font-size: 13px; font-weight: 500; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .skill-bar { flex: 1; height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; }
+        .skill-fill { height: 100%; background: #111; border-radius: 3px; transition: width 0.5s; }
+        .skill-stat { font-size: 12px; color: #6b7280; width: 50px; text-align: right; }
+        .skill-pct { font-size: 13px; font-weight: 600; width: 45px; text-align: right; }
+        .skill-pct.high { color: #16a34a; }
+        
+        /* Legend */
+        .legend { display: flex; gap: 16px; justify-content: center; font-size: 11px; color: #6b7280; padding-top: 16px; border-top: 1px solid #f3f4f6; margin-top: 16px; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; display: inline-block; vertical-align: middle; }
+        
+        .skeleton { background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body>
+    <div class="auth-overlay hidden" id="auth-overlay">
+        <div class="auth-modal">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </div>
+                <div><h2 class="text-base font-semibold">Welcome back</h2><p class="text-xs text-neutral-500">Enter your API key to continue</p></div>
+            </div>
+            <form onsubmit="auth(event)">
+                <input type="password" id="api-key-input" class="input-field w-full mb-3" placeholder="API key" required>
+                <label class="flex items-center gap-2 mb-4 text-xs text-neutral-500 cursor-pointer"><input type="checkbox" id="remember-key" checked class="rounded"> Remember me</label>
+                <button type="submit" class="w-full bg-neutral-900 hover:bg-neutral-800 text-white py-3 rounded-xl font-medium text-sm transition-colors" id="auth-btn">Continue</button>
+                <p class="text-xs text-red-500 text-center mt-3" id="auth-error"></p>
+            </form>
+        </div>
+    </div>
+
+    <header class="border-b border-neutral-200 bg-white sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-9 h-9 bg-neutral-900 rounded-xl flex items-center justify-center">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                </div>
+                <span class="font-semibold text-neutral-900">Analytics</span>
+                <select id="date-range" class="input-field text-sm py-2 px-4" onchange="load()">
+                    <option value="all">All Time</option>
+                    <option value="7d">Last 7 Days</option>
+                    <option value="30d" selected>Last 30 Days</option>
+                    <option value="90d">Last 90 Days</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg><span class="tooltip">Generate</span></a>
+                <span class="nav-icon active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span>
+                <a href="history.html" class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span class="tooltip">History</span></a>
+                <a href="training.html" class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg><span class="tooltip">Training</span></a>
+                <a href="admin.html" class="nav-icon" id="nav-admin" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span class="tooltip">Admin</span></a>
+                <div class="w-px h-8 bg-neutral-200 mx-2"></div>
+                <div class="user-badge"><span class="dot"></span><span id="user-role">Admin</span></div>
+                <button onclick="logout()" class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="tooltip">Logout</span></button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-5 py-8">
+        <!-- Pipeline -->
+        <div class="card mb-6" id="pipeline-card">
+            <div class="p-5 pb-0">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-semibold text-neutral-900">Pipeline</h2>
+                    <span class="text-xs text-neutral-400" id="pipeline-summary"></span>
+                </div>
+            </div>
+            <div class="p-5" id="pipeline"></div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6 mb-6">
+            <!-- Metrics -->
+            <div class="card" id="metrics-card">
+                <div class="grid grid-cols-2 divide-x divide-neutral-100" id="metrics">
+                    <div class="metric"><div class="skeleton h-10 w-14 mx-auto mb-2"></div><div class="skeleton h-3 w-16 mx-auto"></div></div>
+                    <div class="metric"><div class="skeleton h-10 w-14 mx-auto mb-2"></div><div class="skeleton h-3 w-16 mx-auto"></div></div>
+                </div>
+                <div class="border-t border-neutral-100 p-4 text-center" id="metric-footer">
+                    <div class="skeleton h-5 w-48 mx-auto"></div>
+                </div>
+            </div>
+
+            <!-- Insights -->
+            <div class="card p-5 lg:col-span-2">
+                <h2 class="font-semibold text-neutral-900 mb-4">Insights</h2>
+                <div id="insights">
+                    <div class="skeleton h-16 mb-3"></div>
+                    <div class="skeleton h-16"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-6">
+            <!-- Trends -->
+            <div class="card p-5">
+                <h2 class="font-semibold text-neutral-900 mb-4">Activity</h2>
+                <div style="height:200px"><canvas id="chart"></canvas></div>
+            </div>
+
+            <!-- Skills -->
+            <div class="card p-5">
+                <h2 class="font-semibold text-neutral-900 mb-4">Skills</h2>
+                <div id="skills">
+                    <div class="skeleton h-12 mb-2"></div>
+                    <div class="skeleton h-12 mb-2"></div>
+                    <div class="skeleton h-12"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/config.js"></script>
+    <script>
+        // State
+        let key = localStorage.getItem('app_api_key') || '';
+        let role = null;
+        let chart = null;
+        let D = {}; // Dashboard data
+        let showAI = true, showManual = true; // toggle visibility
+
+        // Utils
+        const $ = id => document.getElementById(id);
+        const pct = (n, d) => d > 0 ? +(n / d * 100).toFixed(1) : 0;
+        const num = n => n?.toLocaleString() || '0';
+        
+        // Auth
+        axios.interceptors.request.use(c => { if (key) c.headers['X-API-Key'] = key; return c; });
+        axios.interceptors.response.use(r => r, e => { if ([401, 403].includes(e.response?.status)) { key = ''; localStorage.removeItem('app_api_key'); $('auth-overlay').classList.remove('hidden'); } return Promise.reject(e); });
+        
+        const logout = () => { key = ''; role = null; localStorage.removeItem('app_api_key'); location.reload(); };
+        
+        document.addEventListener('DOMContentLoaded', () => key ? verify() : $('auth-overlay').classList.remove('hidden'));
+        
+        function toggleLegend(type) {
+            if (type === 'ai') showAI = !showAI;
+            else showManual = !showManual;
+            if (!showAI && !showManual) { showAI = true; showManual = true; } // keep at least one
+            renderPipeline();
+        }
+
+        async function verify() {
+            try {
+                const { data } = await axios.get(`${API}/auth/verify`);
+                role = data.role;
+                $('nav-admin').style.display = role === 'super_admin' ? 'flex' : 'none';
+                $('user-role').textContent = role === 'super_admin' ? 'Super Admin' : 'Admin';
+                $('auth-overlay').classList.add('hidden');
+                load();
+            } catch { $('auth-overlay').classList.remove('hidden'); }
+        }
+
+        async function auth(e) {
+            e.preventDefault();
+            const btn = $('auth-btn');
+            key = $('api-key-input').value.trim();
+            btn.disabled = true; btn.textContent = 'Verifying...';
+            try {
+                const { data } = await axios.get(`${API}/auth/verify`);
+                role = data.role;
+                if ($('remember-key').checked) localStorage.setItem('app_api_key', key);
+                $('nav-admin').style.display = role === 'super_admin' ? 'flex' : 'none';
+                $('user-role').textContent = role === 'super_admin' ? 'Super Admin' : 'Admin';
+                $('auth-overlay').classList.add('hidden');
+                load();
+            } catch { $('auth-error').textContent = 'Invalid key'; key = ''; }
+            finally { btn.disabled = false; btn.textContent = 'Continue'; }
+        }
+
+        async function load() {
+            const r = $('date-range').value;
+            const [funnel, trends, skills] = await Promise.all([
+                axios.get(`${API}/analytics/funnel-combined?range=${r}`).then(x => x.data).catch(() => null),
+                axios.get(`${API}/analytics/trends?range=${r}`).then(x => x.data).catch(() => null),
+                axios.get(`${API}/analytics/skills?range=${r}&limit=5`).then(x => x.data).catch(() => null)
+            ]);
+            D = { funnel, trends, skills };
+            render();
+        }
+
+        function renderPipeline() {
+            const f = D.funnel;
+            if (!f) return;
+            const hasSent = f?.totals?.sent > 0;
+            const stages = ['sent', 'viewed', 'discussed', 'hired'];
+            const labels = { sent: 'Sent', viewed: 'Viewed', discussed: 'Discussed', hired: 'Hired' };
+            const getCount = (stage) => {
+                let c = 0;
+                if (showAI) c += f.ai[stage] || 0;
+                if (showManual) c += f.manual[stage] || 0;
+                return c;
+            };
+            
+            if (!hasSent) {
+                $('pipeline').innerHTML = '<p class="text-center text-neutral-400 py-6">Send your first proposal to see your pipeline</p>';
+                $('pipeline-summary').textContent = '';
+            } else {
+                const filteredSent = getCount('sent'), filteredHired = getCount('hired');
+                const filterLabel = showAI && showManual ? '' : showAI ? ' (AI only)' : ' (Manual only)';
+                $('pipeline-summary').textContent = `${pct(filteredHired, filteredSent)}% overall conversion${filterLabel}`;
+                
+                $('pipeline').innerHTML = `
+                    <div class="pipeline">
+                        ${stages.map((s, i) => {
+                            const ai = showAI ? (f.ai[s] || 0) : 0;
+                            const man = showManual ? (f.manual[s] || 0) : 0;
+                            const tot = ai + man;
+                            const aiPct = tot > 0 ? (ai / tot) * 100 : 0;
+                            const prev = i > 0 ? getCount(stages[i-1]) : tot;
+                            const conv = prev > 0 ? pct(tot, prev) : 0;
+                            const subParts = [];
+                            if (showAI) subParts.push(`${ai} AI`);
+                            if (showManual) subParts.push(`${man} manual`);
+                            const subText = subParts.join(' · ') + (i > 0 ? ` <span style="opacity:0.5">| ${conv}%</span>` : '');
+                            return `<div class="pipe-stage">
+                                <div class="pipe-num">${num(tot)}</div>
+                                <div class="pipe-label">${labels[s]}</div>
+                                <div class="pipe-bar"><div class="pipe-ai" style="width:${aiPct}%"></div><div class="pipe-man" style="width:${100-aiPct}%"></div></div>
+                                <div class="pipe-sub">${subText}</div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                    <div class="legend">
+                        <span onclick="toggleLegend('ai')" style="cursor:pointer;${!showAI ? 'text-decoration:line-through;opacity:0.5' : ''}"><span class="legend-dot" style="background:#111;${!showAI ? 'opacity:0.3' : ''}"></span>AI Generated</span>
+                        <span onclick="toggleLegend('manual')" style="cursor:pointer;${!showManual ? 'text-decoration:line-through;opacity:0.5' : ''}"><span class="legend-dot" style="background:#d1d5db;${!showManual ? 'opacity:0.3' : ''}"></span>Manual</span>
+                    </div>
+                `;
+            }
+        }
+
+        function render() {
+            renderPipeline();
+            
+            const f = D.funnel;
+            const hasSent = f?.totals?.sent > 0;
+            
+            // Metrics
+            if (!hasSent) {
+                $('metrics').innerHTML = '<div class="metric col-span-2 py-8"><p class="text-neutral-400 text-sm">No data yet</p></div>';
+                $('metric-footer').innerHTML = '';
+            } else {
+                const aiVR = pct(f.ai.viewed, f.ai.sent);
+                const manVR = pct(f.manual.viewed, f.manual.sent);
+                const diff = aiVR - manVR;
+                const hasCompare = f.ai.sent > 0 && f.manual.sent > 0;
+                
+                $('metrics').innerHTML = `
+                    <div class="metric">
+                        <div class="metric-val">${f.ai.sent}</div>
+                        <div class="metric-label">AI Proposals</div>
+                        <div class="metric-delta ${aiVR >= 40 ? 'up' : 'flat'}">${aiVR}% viewed</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-val">${f.manual.sent}</div>
+                        <div class="metric-label">Manual</div>
+                        <div class="metric-delta ${manVR >= 40 ? 'up' : 'flat'}">${manVR}% viewed</div>
+                    </div>
+                `;
+                
+                // Smart footer based on data correlation
+                let footer = '';
+                if (hasCompare) {
+                    if (diff > 10) footer = `<span class="text-green-600 font-semibold">AI has ${diff.toFixed(0)}% higher view rate than manual</span>`;
+                    else if (diff < -10) footer = `<span class="text-amber-600 font-semibold">Manual has ${Math.abs(diff).toFixed(0)}% higher view rate — review AI prompts</span>`;
+                    else footer = `<span class="text-neutral-500">AI and manual performing equally</span>`;
+                } else if (f.ai.sent > 0) {
+                    footer = aiVR >= 40 ? `<span class="text-green-600">Strong AI visibility at ${aiVR}%</span>` : `<span class="text-amber-600">${aiVR}% AI view rate — room to improve</span>`;
+                } else {
+                    footer = `<span class="text-neutral-500">Try AI proposals to compare performance</span>`;
+                }
+                $('metric-footer').innerHTML = `<div class="text-sm">${footer}</div>`;
+            }
+            
+            // Insights (smart, interconnected)
+            if (!hasSent) {
+                $('insights').innerHTML = '<div class="insight insight-info"><div class="insight-title">Get Started</div><div class="insight-text">Send proposals to unlock performance insights and recommendations.</div></div>';
+            } else {
+                const ins = generateInsights(f, D.skills);
+                $('insights').innerHTML = ins.slice(0, 3).map(i => `
+                    <div class="insight insight-${i.type}">
+                        <div class="insight-title">${i.title}</div>
+                        <div class="insight-text">${i.text}</div>
+                        ${i.action ? `<div class="insight-action">${i.action}</div>` : ''}
+                    </div>
+                `).join('');
+            }
+            
+            // Chart
+            const ctx = $('chart').getContext('2d');
+            if (chart) chart.destroy();
+            const t = D.trends;
+            if (!t?.data?.length) {
+                ctx.font = '14px Inter'; ctx.fillStyle = '#9ca3af'; ctx.textAlign = 'center';
+                ctx.fillText('No activity yet', ctx.canvas.width / 2, 100);
+            } else {
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: t.data.map(d => d.date?.slice(5) || ''),
+                        datasets: [
+                            { label: 'Sent', data: t.data.map(d => d.sent || 0), borderColor: '#111', backgroundColor: 'rgba(17,17,17,0.03)', tension: 0.4, fill: true, borderWidth: 2, pointRadius: 0 },
+                            { label: 'Hired', data: t.data.map(d => d.hired || 0), borderColor: '#22c55e', tension: 0.4, borderWidth: 2, pointRadius: 0 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index' },
+                        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, padding: 16, font: { size: 11 }, usePointStyle: true } } },
+                        scales: { y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 11 } } }, x: { grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 0 } } }
+                    }
+                });
+            }
+            
+            // Skills
+            const s = D.skills?.skills;
+            if (!s?.length) {
+                $('skills').innerHTML = '<p class="text-center text-neutral-400 py-6">No skill data yet</p>';
+            } else {
+                const max = Math.max(...s.map(x => x.total));
+                $('skills').innerHTML = s.map(sk => `
+                    <div class="skill-row">
+                        <div class="skill-name" title="${sk.skill}">${sk.skill}</div>
+                        <div class="skill-bar"><div class="skill-fill" style="width:${(sk.total / max) * 100}%"></div></div>
+                        <div class="skill-stat">${sk.hired}/${sk.total}</div>
+                        <div class="skill-pct ${sk.hire_rate >= 15 ? 'high' : ''}">${sk.hire_rate}%</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function generateInsights(f, skillsData) {
+            const ins = [];
+            const t = f.totals;
+            const viewRate = pct(t.viewed, t.sent);
+            const discussRate = pct(t.discussed, t.viewed);
+            const hireRate = pct(t.hired, t.discussed);
+            const overallHR = pct(t.hired, t.sent);
+            
+            const aiVR = pct(f.ai.viewed, f.ai.sent);
+            const manVR = pct(f.manual.viewed, f.manual.sent);
+            const skills = skillsData?.skills || [];
+            
+            // Funnel analysis - find the biggest drop
+            const drops = [
+                { stage: 'visibility', from: t.sent, to: t.viewed, rate: viewRate, label: 'viewed' },
+                { stage: 'engagement', from: t.viewed, to: t.discussed, rate: discussRate, label: 'discussed' },
+                { stage: 'closing', from: t.discussed, to: t.hired, rate: hireRate, label: 'hired' }
+            ].filter(d => d.from >= 3);
+            
+            const biggestDrop = drops.reduce((a, b) => (a.rate < b.rate ? a : b), { rate: 100 });
+            
+            // 1. Main bottleneck insight
+            if (biggestDrop.rate < 30 && biggestDrop.from >= 3) {
+                const actions = {
+                    visibility: 'Improve proposal titles and opening hooks to stand out in client inbox.',
+                    engagement: 'Strengthen your value proposition. Show specific results and portfolio proof.',
+                    closing: 'Work on pricing clarity and scope definition during discussions.'
+                };
+                ins.push({
+                    type: 'warn',
+                    title: `Bottleneck: ${biggestDrop.stage}`,
+                    text: `Only <b>${biggestDrop.rate}%</b> of proposals get ${biggestDrop.label}. This is your biggest opportunity.`,
+                    action: actions[biggestDrop.stage]
+                });
+            }
+            
+            // 2. AI vs Manual comparative insight
+            if (f.ai.sent >= 3 && f.manual.sent >= 3) {
+                const diff = aiVR - manVR;
+                if (Math.abs(diff) >= 10) {
+                    const better = diff > 0 ? 'AI' : 'Manual';
+                    const worse = diff > 0 ? 'manual' : 'AI';
+                    ins.push({
+                        type: diff > 0 ? 'success' : 'warn',
+                        title: `${better} winning`,
+                        text: `<b>${better}</b> proposals have <b>${Math.abs(diff).toFixed(0)}%</b> higher view rate than ${worse}. ${diff > 0 ? 'AI personalization is working.' : 'Review AI prompt settings.'}`,
+                        action: diff > 0 ? 'Consider using AI for more proposals.' : 'Check your AI prompt style and tone settings.'
+                    });
+                }
+            }
+            
+            // 3. Success pattern from skills
+            const topSkill = skills.find(s => s.hire_rate > 0 && s.total >= 2);
+            if (topSkill) {
+                ins.push({
+                    type: 'success',
+                    title: 'Winning skill',
+                    text: `<b>${topSkill.skill}</b> has ${topSkill.hire_rate}% hire rate from ${topSkill.total} proposals.`,
+                    action: 'Double down on jobs requiring this skill.'
+                });
+            }
+            
+            // 4. High performer recognition
+            if (overallHR >= 10 && t.hired >= 2) {
+                ins.push({
+                    type: 'success',
+                    title: 'Strong performer',
+                    text: `<b>${overallHR}%</b> overall hire rate with <b>${t.hired}</b> hires. You're in the top tier.`
+                });
+            }
+            
+            // 5. Volume insight
+            if (t.sent >= 20 && viewRate < 25) {
+                ins.push({
+                    type: 'warn',
+                    title: 'Quality over quantity',
+                    text: `<b>${t.sent}</b> proposals sent but only <b>${viewRate}%</b> viewed. Consider more targeted applications.`,
+                    action: 'Focus on jobs with fewer applicants or better skill match.'
+                });
+            }
+            
+            // 6. Discussion to hire gap
+            if (t.discussed >= 5 && hireRate < 20) {
+                ins.push({
+                    type: 'warn',
+                    title: 'Closing gap',
+                    text: `<b>${t.discussed}</b> discussions but only <b>${hireRate}%</b> convert to hires.`,
+                    action: 'Review your interview/call technique and pricing strategy.'
+                });
+            }
+            
+            // 7. Good engagement signal
+            if (discussRate >= 50 && t.viewed >= 5) {
+                ins.push({
+                    type: 'success',
+                    title: 'Strong hooks',
+                    text: `<b>${discussRate}%</b> of viewed proposals start conversations. Your proposals are compelling.`
+                });
+            }
+            
+            // Fallback
+            if (ins.length === 0) {
+                ins.push({
+                    type: 'info',
+                    title: 'Building data',
+                    text: `<b>${t.sent}</b> proposals sent. Keep going to unlock deeper performance insights.`
+                });
+            }
+            
+            return ins;
+        }
+    </script>
+</body>
+</html>

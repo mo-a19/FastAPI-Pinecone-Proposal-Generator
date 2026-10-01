@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="image.png">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>Proposal History | Track Outcomes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background: #fafafa; min-height: 100vh; }
+
+        /* Input styling */
+        .input-field {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 14px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            width: 100%;
+        }
+        .input-field:hover { border-color: #d4d4d4; }
+        .input-field:focus { outline: none; border-color: #171717; box-shadow: 0 0 0 3px rgba(0,0,0,0.04); }
+
+        /* Status badges */
+        .badge { 
+            display: inline-flex; 
+            align-items: center; 
+            padding: 3px 8px; 
+            border-radius: 4px; 
+            font-size: 11px; 
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .badge-sent { background: #fef3c7; color: #92400e; }
+        .badge-viewed { background: #dbeafe; color: #1e40af; }
+        .badge-discussed { background: #ede9fe; color: #6d28d9; }
+        .badge-hired { background: #d1fae5; color: #065f46; }
+        .badge-rejected { background: #f3f4f6; color: #6b7280; }
+
+        /* Stat cards */
+        .stat-card { 
+            background: #fff; 
+            border: 1px solid #e5e5e5; 
+            border-radius: 8px; 
+            padding: 16px; 
+        }
+        .stat-value { font-size: 28px; font-weight: 600; color: #171717; }
+        .stat-label { font-size: 12px; color: #737373; margin-top: 2px; }
+
+        /* Proposal row */
+        .proposal-row { 
+            background: #fff; 
+            border: 1px solid #e5e5e5; 
+            border-radius: 8px; 
+            padding: 14px 18px; 
+            margin-bottom: 8px; 
+            transition: border-color 0.15s; 
+        }
+        .proposal-row:hover { border-color: #d4d4d4; }
+
+        /* Buttons */
+        .btn-primary {
+            background: #171717;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .btn-primary:hover { background: #262626; }
+        .btn-primary:disabled { background: #a3a3a3; cursor: not-allowed; }
+
+        .btn-secondary {
+            background: #fff;
+            color: #171717;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .btn-secondary:hover { background: #fafafa; border-color: #d4d4d4; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        /* Filter tabs */
+        .filter-tab { 
+            padding: 8px 14px; 
+            font-size: 13px; 
+            font-weight: 500; 
+            color: #737373; 
+            border-radius: 6px;
+            cursor: pointer; 
+            transition: all 0.15s; 
+        }
+        .filter-tab:hover { color: #171717; background: #f5f5f5; }
+        .filter-tab.active { color: #171717; background: #f0f0f0; }
+
+        /* Modal */
+        .modal-backdrop { 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(0,0,0,0.4); 
+            z-index: 100; 
+            display: none; 
+            align-items: center; 
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        .modal-backdrop.show { display: flex; }
+        .modal { 
+            background: #fff; 
+            border-radius: 12px; 
+            max-width: 380px; 
+            width: 90%; 
+            max-height: 90vh; 
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        /* Outcome options */
+        .outcome-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-bottom: 8px;
+        }
+        .outcome-option:last-child { margin-bottom: 0; }
+        .outcome-option:hover { border-color: #d4d4d4; background: #fafafa; }
+        .outcome-option.selected { border-color: #171717; background: #fafafa; }
+        .outcome-option .icon { font-size: 16px; width: 24px; text-align: center; }
+        .outcome-option .label { font-size: 13px; font-weight: 500; color: #171717; }
+        .outcome-option .desc { font-size: 11px; color: #737373; }
+
+        /* Toast */
+        .toast { 
+            position: fixed; 
+            bottom: 24px; 
+            right: 24px; 
+            background: #171717; 
+            color: #fff; 
+            padding: 12px 16px; 
+            border-radius: 8px; 
+            font-size: 13px; 
+            font-weight: 500;
+            opacity: 0; 
+            transform: translateY(8px); 
+            transition: all 0.2s; 
+            z-index: 200; 
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        /* Nav icons */
+        .nav-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #737373; transition: all 0.15s; cursor: pointer; text-decoration: none; position: relative; }
+        .nav-icon:hover { background: #f5f5f5; color: #171717; }
+        .nav-icon svg { width: 18px; height: 18px; }
+        .nav-icon .tooltip { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #171717; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+        .nav-icon:hover .tooltip { opacity: 1; }
+        .nav-icon.active { background: #171717; color: #fff; }
+        .nav-icon.active:hover { background: #262626; }
+        .nav-icon.active .tooltip { display: none; }
+        .user-badge { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #f5f5f5; border-radius: 6px; font-size: 12px; color: #525252; }
+        .user-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+
+        /* Empty state */
+        .empty-state { text-align: center; padding: 60px 20px; }
+
+        /* Auth Modal - Minimalistic */
+        .auth-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .auth-overlay.hidden { display: none; }
+        .auth-modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 320px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- Authentication Modal - Minimalistic -->
+    <div class="auth-overlay hidden" id="auth-overlay">
+        <div class="auth-modal">
+            <div class="flex items-center gap-3 mb-5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#171717" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0110 0v4"></path>
+                </svg>
+                <h2 class="text-base font-semibold">Enter API Key</h2>
+            </div>
+            <form id="auth-form" onsubmit="authenticateUser(event)">
+                <input type="password" id="api-key-input" class="input-field mb-3" placeholder="API key" required autofocus>
+                <div class="flex items-center gap-2 mb-4">
+                    <input type="checkbox" id="remember-key" class="w-4 h-4" checked>
+                    <label for="remember-key" class="text-xs text-neutral-500">Remember me</label>
+                </div>
+                <button type="submit" class="btn-primary w-full text-sm py-3" id="auth-submit-btn">Continue</button>
+                <p class="text-xs text-red-500 text-center mt-3" id="auth-error"></p>
+            </form>
+            <a href="index.html" class="block text-xs text-neutral-400 text-center mt-4 hover:text-neutral-600">← Back to Generator</a>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="border-b border-neutral-200 bg-white sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </div>
+                <span class="font-semibold text-neutral-900 text-sm">History</span>
+            </div>
+            <div class="flex items-center gap-1" id="nav-links">
+                <a href="index.html" class="nav-icon" title="Generate">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                    <span class="tooltip">Generate</span>
+                </a>
+                <a href="dashboard.html" class="nav-icon" title="Analytics">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    <span class="tooltip">Analytics</span>
+                </a>
+                <span class="nav-icon active" title="History">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </span>
+                <a href="training.html" class="nav-icon" title="Training">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                    <span class="tooltip">Training</span>
+                </a>
+                <a href="admin.html" class="nav-icon" id="nav-admin" title="Admin" style="display:none">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    <span class="tooltip">Admin</span>
+                </a>
+                <div class="w-px h-6 bg-neutral-200 mx-2"></div>
+                <div class="user-badge" id="user-badge"><span class="dot"></span><span id="user-role">Admin</span></div>
+                <button onclick="logout()" class="nav-icon" title="Logout">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    <span class="tooltip">Logout</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 py-8">
+        <!-- Stats -->
+        <div class="grid grid-cols-4 gap-4 mb-8">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-sent">-</div>
+                <div class="stat-label">Sent</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-viewed">-</div>
+                <div class="stat-label">Viewed <span class="text-neutral-400" id="stat-view-rate"></span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value text-green-600" id="stat-hired">-</div>
+                <div class="stat-label">Hired <span class="text-neutral-400" id="stat-hire-rate"></span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-conversion">-</div>
+                <div class="stat-label">Conversion</div>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-2">
+                <button class="filter-tab active" data-filter="">All</button>
+                <button class="filter-tab" data-filter="sent">Pending</button>
+                <button class="filter-tab" data-filter="viewed">Viewed</button>
+                <button class="filter-tab" data-filter="hired">Hired</button>
+                <button class="filter-tab" data-filter="rejected">Rejected</button>
+            </div>
+            <button onclick="openManualModal()" class="btn-secondary btn-sm inline-flex items-center gap-1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                Log Manual
+            </button>
+        </div>
+
+        <!-- Proposals List -->
+        <div id="proposals-container">
+            <div class="empty-state">
+                <p class="text-neutral-400 text-sm">Loading...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Update Outcome Modal -->
+    <div id="outcome-modal" class="modal-backdrop">
+        <div class="modal">
+            <div class="p-5 border-b border-neutral-100">
+                <h3 class="font-semibold text-neutral-900">Update Outcome</h3>
+                <p class="text-sm text-neutral-500 mt-1 truncate" id="modal-job-title">-</p>
+            </div>
+            
+            <div class="p-5">
+                <p class="text-xs text-neutral-500 mb-3">What happened with this proposal?</p>
+                
+                <div id="outcome-options">
+                    <div class="outcome-option" data-outcome="viewed" onclick="selectOutcome('viewed')">
+                        <span class="icon">👀</span>
+                        <div>
+                            <div class="label">Viewed</div>
+                            <div class="desc">Client opened your proposal</div>
+                        </div>
+                    </div>
+                    
+                    <div class="outcome-option" data-outcome="discussed" onclick="selectOutcome('discussed')">
+                        <span class="icon">💬</span>
+                        <div>
+                            <div class="label">Discussion Started</div>
+                            <div class="desc">Client initiated a conversation</div>
+                        </div>
+                    </div>
+                    
+                    <div class="outcome-option" data-outcome="hired" onclick="selectOutcome('hired')">
+                        <span class="icon">🎉</span>
+                        <div>
+                            <div class="label">Hired</div>
+                            <div class="desc">You got the job!</div>
+                        </div>
+                    </div>
+                    
+                    <div class="outcome-option" data-outcome="rejected" onclick="selectOutcome('rejected')">
+                        <span class="icon">✕</span>
+                        <div>
+                            <div class="label">Rejected</div>
+                            <div class="desc">Job closed or no response</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-neutral-100 flex justify-end gap-2">
+                <button onclick="closeModal()" class="btn-secondary btn-sm">Cancel</button>
+                <button onclick="submitOutcome()" class="btn-primary btn-sm" id="submit-btn" disabled>Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Proposal Modal -->
+    <div id="view-modal" class="modal-backdrop">
+        <div class="modal" style="max-width: 540px;">
+            <div class="p-5 border-b border-neutral-100 flex justify-between items-start">
+                <div class="min-w-0 flex-1 pr-4">
+                    <h3 class="font-semibold text-neutral-900 truncate" id="view-job-title">-</h3>
+                    <p class="text-sm text-neutral-500" id="view-company">-</p>
+                </div>
+                <span id="view-badge" class="badge badge-sent">sent</span>
+            </div>
+            <div class="p-5">
+                <div class="bg-neutral-50 rounded-lg p-4 text-sm text-neutral-700 whitespace-pre-wrap max-h-64 overflow-y-auto" id="view-proposal-text">-</div>
+                
+                <div class="mt-4 pt-4 border-t border-neutral-100 grid grid-cols-3 gap-4 text-xs text-neutral-500">
+                    <div><span class="block text-neutral-400">Sent</span><span id="view-sent-at">-</span></div>
+                    <div><span class="block text-neutral-400">Words</span><span id="view-word-count">-</span></div>
+                    <div><span class="block text-neutral-400">Skills</span><span id="view-skills" class="truncate block">-</span></div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-neutral-100 flex justify-end gap-2">
+                <button onclick="closeViewModal()" class="btn-secondary btn-sm">Close</button>
+                <button onclick="copyProposalText()" class="btn-primary btn-sm">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Manual Proposal Modal -->
+    <div id="manual-modal" class="modal-backdrop">
+        <div class="modal" style="max-width: 420px;">
+            <div class="p-5 border-b border-neutral-100">
+                <h3 class="font-semibold text-neutral-900">Log Manual Proposal</h3>
+                <p class="text-xs text-neutral-500 mt-1">Track a proposal you wrote manually</p>
+            </div>
+            <form id="manual-form" onsubmit="saveManualProposal(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-neutral-600 mb-1">Job Title *</label>
+                    <input type="text" id="manual-title" class="input-field" placeholder="e.g., Full Stack Developer" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-neutral-600 mb-1">Skills (comma separated) *</label>
+                    <input type="text" id="manual-skills" class="input-field" placeholder="React, Node.js, MongoDB" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-neutral-600 mb-1">Proposal Text *</label>
+                    <textarea id="manual-text" class="input-field" rows="4" placeholder="Paste your proposal..." required></textarea>
+                </div>
+            </form>
+            <div class="p-4 border-t border-neutral-100 flex justify-end gap-2">
+                <button onclick="closeManualModal()" class="btn-secondary btn-sm">Cancel</button>
+                <button onclick="document.getElementById('manual-form').requestSubmit()" class="btn-primary btn-sm" id="manual-save-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        // API_BASE is set from config.js (PROPOSALS_API)
+        const API_BASE = PROPOSALS_API;
+        
+        // Authentication state
+        let apiKey = localStorage.getItem('app_api_key') || '';
+        let isAuthenticated = false;
+        let userRole = null;
+        
+        let currentFilter = '';
+        let currentProposalId = null;
+        let selectedOutcome = null;
+        let proposals = [];
+
+        // Axios interceptor to add API key header
+        axios.interceptors.request.use(config => {
+            if (apiKey) {
+                config.headers['X-API-Key'] = apiKey;
+            }
+            return config;
+        });
+
+        // Axios interceptor to handle 401/403 errors
+        axios.interceptors.response.use(
+            response => response,
+            error => {
+                if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                    isAuthenticated = false;
+                    apiKey = '';
+                    localStorage.removeItem('app_api_key');
+                    showAuthModal();
+                    showToast('Session expired. Please re-authenticate.');
+                }
+                return Promise.reject(error);
+            }
+        );
+
+        function logout() { apiKey = ''; userRole = null; localStorage.removeItem('app_api_key'); location.reload(); }
+
+        function updateNav() {
+            const isSuper = userRole === 'super_admin';
+            document.getElementById('nav-admin').style.display = isSuper ? 'flex' : 'none';
+            document.getElementById('user-role').textContent = isSuper ? 'Super Admin' : 'Admin';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (apiKey) {
+                verifyStoredApiKey();
+            } else {
+                showAuthModal();
+            }
+        });
+
+        function showAuthModal() {
+            document.getElementById('auth-overlay').classList.remove('hidden');
+        }
+
+        function hideAuthModal() {
+            document.getElementById('auth-overlay').classList.add('hidden');
+        }
+
+        async function verifyStoredApiKey() {
+            try {
+                const { data } = await axios.get(AUTH_API);
+                userRole = data.role;
+                isAuthenticated = true;
+                hideAuthModal();
+                updateNav();
+                initializeApp();
+            } catch (error) {
+                apiKey = '';
+                localStorage.removeItem('app_api_key');
+                showAuthModal();
+            }
+        }
+
+        async function authenticateUser(event) {
+            event.preventDefault();
+            const keyInput = document.getElementById('api-key-input');
+            const rememberCheckbox = document.getElementById('remember-key');
+            const submitBtn = document.getElementById('auth-submit-btn');
+            const errorEl = document.getElementById('auth-error');
+            
+            const enteredKey = keyInput.value.trim();
+            if (!enteredKey) {
+                errorEl.textContent = 'Please enter an API key';
+                errorEl.style.color = '#ef4444';
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Verifying...';
+            errorEl.textContent = '';
+            
+            try {
+                apiKey = enteredKey;
+                const { data } = await axios.get(AUTH_API);
+                userRole = data.role;
+                
+                isAuthenticated = true;
+                if (rememberCheckbox.checked) {
+                    localStorage.setItem('app_api_key', enteredKey);
+                }
+                
+                hideAuthModal();
+                updateNav();
+                initializeApp();
+                showToast('Welcome!');
+            } catch (error) {
+                apiKey = '';
+                errorEl.textContent = 'Invalid key';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Continue';
+            }
+        }
+
+        function initializeApp() {
+            loadStats();
+            loadProposals();
+            setupFilterTabs();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        async function loadStats() {
+            try {
+                const res = await axios.get(`${API_BASE}/stats`);
+                const s = res.data;
+                
+                document.getElementById('stat-sent').textContent = s.total_sent || 0;
+                document.getElementById('stat-viewed').textContent = s.total_viewed || 0;
+                document.getElementById('stat-hired').textContent = s.total_hired || 0;
+                document.getElementById('stat-conversion').textContent = (s.hire_rate || 0) + '%';
+                
+                document.getElementById('stat-view-rate').textContent = s.view_rate ? `(${s.view_rate}%)` : '';
+                document.getElementById('stat-hire-rate').textContent = s.hire_rate ? `(${s.hire_rate}%)` : '';
+            } catch (e) {
+                console.error('Error loading stats:', e);
+            }
+        }
+
+        async function loadProposals(filter = '') {
+            const container = document.getElementById('proposals-container');
+            
+            try {
+                const url = filter ? `${API_BASE}/history?outcome=${filter}` : `${API_BASE}/history`;
+                const res = await axios.get(url);
+                proposals = res.data.items || [];
+                
+                if (proposals.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <p class="text-neutral-400 mb-4">No proposals yet</p>
+                            <a href="index.html" class="btn-primary">Generate Proposal</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = proposals.map(renderProposalRow).join('');
+                
+            } catch (e) {
+                console.error('Error loading proposals:', e);
+                container.innerHTML = `<div class="empty-state"><p class="text-neutral-400">Error loading data</p></div>`;
+            }
+        }
+
+        function renderProposalRow(p) {
+            const date = new Date(p.sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const skills = (p.skills_required || []).slice(0, 3).join(' · ');
+            const outcome = p.outcome || 'sent';
+            
+            // Determine badge based on outcome + discussion_initiated
+            let badgeClass = 'badge-' + outcome;
+            let badgeText = outcome;
+            
+            if (outcome === 'viewed' && p.discussion_initiated) {
+                badgeClass = 'badge-discussed';
+                badgeText = 'discussed';
+            }
+            
+            // Show update button for non-final states
+            const canUpdate = outcome === 'sent' || outcome === 'viewed';
+            
+            return `
+                <div class="proposal-row">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-medium text-neutral-900 truncate">${p.job_title || 'Untitled'}</span>
+                                <span class="badge ${badgeClass}">${badgeText}</span>
+                            </div>
+                            <div class="text-xs text-neutral-500">
+                                ${p.company_name || 'Company'} · ${p.word_count || 0} words · ${date}
+                                ${skills ? ` · <span class="text-neutral-400">${skills}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <button onclick="viewProposal('${p.proposal_id}')" class="btn-secondary btn-sm">View</button>
+                            ${canUpdate ? `<button onclick="openOutcomeModal('${p.proposal_id}', '${(p.job_title || '').replace(/'/g, "\\'")}')" class="btn-primary btn-sm">Update</button>` : ''}
+                            <button onclick="deleteProposal('${p.proposal_id}', '${(p.job_title || '').replace(/'/g, "\\'")}')" class="btn-secondary btn-sm" style="color:#dc2626" title="Delete">✕</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function setupFilterTabs() {
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentFilter = tab.dataset.filter;
+                    loadProposals(currentFilter);
+                });
+            });
+        }
+
+        // ==================== OUTCOME MODAL ====================
+        
+        function openOutcomeModal(proposalId, jobTitle) {
+            currentProposalId = proposalId;
+            selectedOutcome = null;
+            
+            document.getElementById('modal-job-title').textContent = jobTitle || 'Proposal';
+            document.getElementById('submit-btn').disabled = true;
+            
+            // Reset selections
+            document.querySelectorAll('.outcome-option').forEach(o => o.classList.remove('selected'));
+            
+            document.getElementById('outcome-modal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('outcome-modal').classList.remove('show');
+            currentProposalId = null;
+            selectedOutcome = null;
+        }
+
+        function selectOutcome(outcome) {
+            selectedOutcome = outcome;
+            
+            // Update visual selection
+            document.querySelectorAll('.outcome-option').forEach(o => {
+                o.classList.toggle('selected', o.dataset.outcome === outcome);
+            });
+            
+            document.getElementById('submit-btn').disabled = false;
+        }
+
+        async function submitOutcome() {
+            if (!selectedOutcome || !currentProposalId) return;
+            
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            
+            try {
+                // Map frontend outcomes to backend API
+                // Backend accepts: sent, viewed, hired, rejected
+                // Frontend has: viewed, discussed, hired, rejected
+                
+                let apiOutcome = selectedOutcome;
+                let discussionInitiated = false;
+                
+                if (selectedOutcome === 'discussed') {
+                    // "Discussed" means viewed + discussion_initiated = true
+                    apiOutcome = 'viewed';
+                    discussionInitiated = true;
+                }
+                
+                const data = {
+                    outcome: apiOutcome,
+                    discussion_initiated: discussionInitiated,
+                    rejection_reason: null
+                };
+                
+                await axios.patch(`${API_BASE}/${currentProposalId}/outcome`, data);
+                
+                // Success messages
+                const messages = {
+                    viewed: '✓ Marked as viewed',
+                    discussed: '✓ Discussion validates your approach!',
+                    hired: '🎉 Congratulations!',
+                    rejected: '✓ Marked as rejected'
+                };
+                
+                showToast(messages[selectedOutcome] || '✓ Updated');
+                closeModal();
+                loadStats();
+                loadProposals(currentFilter);
+                
+            } catch (e) {
+                showToast('Error: ' + (e.response?.data?.detail || e.message));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save';
+            }
+        }
+
+        // ==================== VIEW MODAL ====================
+
+        async function viewProposal(proposalId) {
+            try {
+                const res = await axios.get(`${API_BASE}/${proposalId}`);
+                const p = res.data.proposal;
+                
+                document.getElementById('view-job-title').textContent = p.job_title || 'Untitled';
+                document.getElementById('view-company').textContent = p.company_name || '-';
+                document.getElementById('view-proposal-text').textContent = p.proposal_text || '-';
+                document.getElementById('view-sent-at').textContent = p.sent_at ? new Date(p.sent_at).toLocaleDateString() : '-';
+                document.getElementById('view-word-count').textContent = p.word_count || 0;
+                document.getElementById('view-skills').textContent = (p.skills_required || []).join(', ') || '-';
+                
+                const badge = document.getElementById('view-badge');
+                const outcome = p.outcome || 'sent';
+                
+                if (outcome === 'viewed' && p.discussion_initiated) {
+                    badge.className = 'badge badge-discussed';
+                    badge.textContent = 'discussed';
+                } else {
+                    badge.className = `badge badge-${outcome}`;
+                    badge.textContent = outcome;
+                }
+                
+                document.getElementById('view-modal').classList.add('show');
+                
+            } catch (e) {
+                showToast('Error loading proposal');
+            }
+        }
+
+        function closeViewModal() {
+            document.getElementById('view-modal').classList.remove('show');
+        }
+
+        function copyProposalText() {
+            const text = document.getElementById('view-proposal-text').textContent;
+            navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
+        }
+
+        // ==================== DELETE ====================
+
+        async function deleteProposal(proposalId, jobTitle) {
+            if (!confirm(`Delete proposal for "${jobTitle}"?`)) return;
+            
+            try {
+                await axios.delete(`${API_BASE}/${proposalId}`);
+                showToast('✓ Deleted');
+                loadStats();
+                loadProposals(currentFilter);
+            } catch (e) {
+                showToast('Error: ' + (e.response?.data?.detail || e.message));
+            }
+        }
+
+        // ==================== MANUAL PROPOSAL ====================
+
+        function openManualModal() {
+            document.getElementById('manual-form').reset();
+            document.getElementById('manual-modal').classList.add('show');
+        }
+
+        function closeManualModal() {
+            document.getElementById('manual-modal').classList.remove('show');
+        }
+
+        async function saveManualProposal(e) {
+            e.preventDefault();
+            const btn = document.getElementById('manual-save-btn');
+            btn.disabled = true; btn.textContent = 'Saving...';
+            
+            try {
+                const text = document.getElementById('manual-text').value.trim();
+                const skills = document.getElementById('manual-skills').value.split(',').map(s => s.trim()).filter(Boolean);
+                
+                await axios.post(`${API_BASE}/save`, {
+                    job_title: document.getElementById('manual-title').value.trim(),
+                    proposal_text: text,
+                    skills_required: skills,
+                    word_count: text ? text.split(/\s+/).length : 0,
+                    source: 'manual'
+                });
+                
+                closeManualModal();
+                showToast('✓ Manual proposal saved');
+                loadStats();
+                loadProposals(currentFilter);
+            } catch (e) {
+                showToast('Error: ' + (e.response?.data?.detail || e.message));
+            } finally {
+                btn.disabled = false; btn.textContent = 'Save';
+            }
+        }
+
+        // Close modals on backdrop click
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+            backdrop.addEventListener('click', (e) => {
+                if (e.target === backdrop) backdrop.classList.remove('show');
+            });
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('show'));
+            }
+        });
+    </script>
+</body>
+</html>

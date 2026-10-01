@@ -1,0 +1,67 @@
+# NOTE: This file is for reference only and NOT used by ECS.
+# For AWS ECS Fargate deployment, use ecs-task-def.json instead.
+# This file documents the production configuration for local testing.
+
+version: '3.8'
+
+services:
+  # FastAPI Application Service (Production)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: proposal-generator-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DEBUG=False
+      - LOG_LEVEL=warning
+      # Database - Use AWS DocumentDB or external MongoDB
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DB_NAME=${MONGODB_DB_NAME:-proposal_generator}
+      # OpenAI
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_EMBEDDING_MODEL=text-embedding-3-large
+      - OPENAI_LLM_MODEL=gpt-4o
+      - OPENAI_VISION_MODEL=gpt-4o
+      # Pinecone
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_INDEX=${PINECONE_INDEX}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - PINECONE_HOST=${PINECONE_HOST}
+      - PINECONE_NAMESPACE=portfolio
+      - PINECONE_DIMENSION=3072
+      # Chunking & Retrieval
+      - CHUNK_SIZE=1024
+      - CHUNK_OVERLAP=200
+      - PROPOSAL_TOP_K=5
+      - MIN_SIMILARITY_SCORE=0.5
+      # API Configuration
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # For AWS ECS, remove port mapping and use environment variables
+    # ports:
+    #   - "8000:8000"
+    networks:
+      - proposal-network
+    # Add resource limits for AWS
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+networks:
+  proposal-network:
+    driver: bridge

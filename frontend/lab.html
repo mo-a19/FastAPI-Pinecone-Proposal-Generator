@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="image.png">
+    <title>Prompt Lab | Proposal Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+        body { background: #fafafa; min-height: 100vh; }
+        
+        .input-field { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px 14px; font-size: 14px; transition: all 0.15s; width: 100%; }
+        .input-field:hover { border-color: #d4d4d4; }
+        .input-field:focus { outline: none; border-color: #171717; box-shadow: 0 0 0 3px rgba(0,0,0,0.04); }
+        
+        textarea.input-field { min-height: 80px; resize: vertical; line-height: 1.6; }
+        textarea.prompt-preview { min-height: 300px; font-family: monospace; font-size: 13px; background: #1a1a1a; color: #e5e5e5; border: none; }
+        textarea.proposal-output { min-height: 250px; line-height: 1.8; }
+        
+        .btn-primary { background: #171717; color: #fff; border: none; border-radius: 8px; padding: 12px 18px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.15s; }
+        .btn-primary:hover { background: #262626; }
+        .btn-primary:disabled { background: #a3a3a3; cursor: not-allowed; }
+        
+        .btn-secondary { background: #fff; color: #171717; border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px 16px; font-weight: 500; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+        .btn-secondary:hover { background: #f5f5f5; border-color: #d4d4d4; }
+        
+        .section-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+        .section-title { font-size: 14px; font-weight: 600; color: #171717; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .section-hint { font-size: 12px; color: #737373; margin-bottom: 12px; }
+        
+        .tab { padding: 10px 16px; font-size: 13px; font-weight: 500; color: #737373; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+        .tab:hover { color: #171717; }
+        .tab.active { color: #171717; border-bottom-color: #171717; }
+        
+        .loader { width: 18px; height: 18px; border: 2px solid #e5e5e5; border-top-color: #171717; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #171717; color: #fff; padding: 12px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transform: translateY(8px); transition: all 0.2s; z-index: 100; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        
+        .template-item { padding: 12px; border: 1px solid #e5e5e5; border-radius: 8px; cursor: pointer; transition: all 0.15s; margin-bottom: 8px; }
+        .template-item:hover { border-color: #171717; background: #fafafa; }
+        .template-item.active { border-color: #171717; background: #f5f5f5; }
+        
+        .nav-link { padding: 8px 12px; font-size: 13px; color: #525252; text-decoration: none; border-radius: 6px; }
+        .nav-link:hover { background: #f5f5f5; color: #171717; }
+        .nav-link.active { background: #171717; color: #fff; }
+        
+        .skill-tag { display: inline-flex; align-items: center; gap: 6px; background: #171717; color: #fff; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: 500; margin: 2px; }
+        .skill-tag button { background: none; border: none; cursor: pointer; color: #a3a3a3; font-size: 13px; padding: 0; }
+        .skill-tag button:hover { color: #fff; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 px-6 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-6">
+                <h1 class="text-lg font-semibold">Prompt Lab</h1>
+                <div class="flex items-center gap-2">
+                    <a href="index.html" class="nav-link">Generator</a>
+                    <a href="lab.html" class="nav-link active">Lab</a>
+                    <a href="training.html" class="nav-link">Training</a>
+                    <a href="history.html" class="nav-link">History</a>
+                </div>
+            </div>
+            <div class="text-xs text-gray-400">Experiment with prompt strategies</div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-6 py-6">
+        <div class="grid grid-cols-12 gap-6">
+            
+            <!-- Left: Job Input + Instructions -->
+            <div class="col-span-5">
+                
+                <!-- Job Input -->
+                <div class="section-card">
+                    <div class="section-title">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        Job Details
+                    </div>
+                    <textarea id="jobDescription" class="input-field mb-3" rows="6" placeholder="Paste the job description here..."></textarea>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="skillInput" class="input-field" placeholder="Add skill and press Enter">
+                    </div>
+                    <div id="skillsContainer" class="flex flex-wrap gap-1"></div>
+                </div>
+
+                <!-- Section Instructions -->
+                <div class="section-card">
+                    <div class="section-title">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Section Instructions
+                    </div>
+                    <p class="section-hint">Write in plain English how each section should be written</p>
+                    
+                    <!-- Hook -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">HOOK (Opening)</label>
+                        <textarea id="hookInstructions" class="input-field" rows="2" placeholder="How should the proposal start? What should grab attention?">Start with a compelling opening that shows you understand their problem. Reference a similar project you've done.</textarea>
+                    </div>
+                    
+                    <!-- Proof -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">PROOF (Show expertise)</label>
+                        <textarea id="proofInstructions" class="input-field" rows="2" placeholder="How should you demonstrate your experience?">Mention 1-2 relevant projects with specific outcomes and metrics.</textarea>
+                    </div>
+                    
+                    <!-- Approach -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">APPROACH (Your solution)</label>
+                        <textarea id="approachInstructions" class="input-field" rows="2" placeholder="How should you describe your approach?">Briefly explain your approach to solving their specific problem.</textarea>
+                    </div>
+                    
+                    <!-- CTA -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">CTA (Call to action)</label>
+                        <textarea id="ctaInstructions" class="input-field" rows="2" placeholder="How should the proposal end?">End with a casual call to action like 'Happy to chat more about this.'</textarea>
+                    </div>
+                    
+                    <!-- General -->
+                    <div class="mb-4">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">GENERAL RULES</label>
+                        <textarea id="generalInstructions" class="input-field" rows="2" placeholder="Any other instructions?">Keep it under 300 words. Be conversational, not formal. No markdown formatting.</textarea>
+                    </div>
+                </div>
+
+                <!-- Templates -->
+                <div class="section-card">
+                    <div class="section-title justify-between">
+                        <span class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+                            Saved Templates
+                        </span>
+                        <button onclick="saveCurrentAsTemplate()" class="btn-secondary text-xs py-1 px-3">Save Current</button>
+                    </div>
+                    <div id="templatesContainer" class="mt-3 max-h-48 overflow-y-auto">
+                        <p class="text-xs text-gray-400">No templates saved yet</p>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-3">
+                    <button onclick="previewPrompt()" class="btn-secondary flex-1">
+                        <span id="previewBtnText">Preview Prompt</span>
+                    </button>
+                    <button onclick="generateProposal()" class="btn-primary flex-1">
+                        <span id="generateBtnText">Generate Proposal</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Output -->
+            <div class="col-span-7">
+                
+                <!-- Tabs -->
+                <div class="flex border-b border-gray-200 mb-4">
+                    <div class="tab active" data-tab="proposal" onclick="switchTab('proposal')">Generated Proposal</div>
+                    <div class="tab" data-tab="prompt" onclick="switchTab('prompt')">Prompt Preview</div>
+                    <div class="tab" data-tab="projects" onclick="switchTab('projects')">Similar Projects</div>
+                </div>
+
+                <!-- Proposal Tab -->
+                <div id="proposalTab" class="tab-content">
+                    <div class="section-card">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-medium text-gray-500">OUTPUT</span>
+                            <div class="flex gap-2">
+                                <span id="wordCount" class="text-xs text-gray-400"></span>
+                                <button onclick="copyProposal()" class="btn-secondary text-xs py-1 px-2">Copy</button>
+                            </div>
+                        </div>
+                        <textarea id="proposalOutput" class="input-field proposal-output" placeholder="Generated proposal will appear here..." readonly></textarea>
+                    </div>
+                </div>
+
+                <!-- Prompt Tab -->
+                <div id="promptTab" class="tab-content hidden">
+                    <div class="section-card" style="background: #1a1a1a; border-color: #333;">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-xs font-medium text-gray-400">ASSEMBLED PROMPT</span>
+                            <button onclick="copyPrompt()" class="btn-secondary text-xs py-1 px-2">Copy</button>
+                        </div>
+                        <textarea id="promptPreview" class="input-field prompt-preview" placeholder="Click 'Preview Prompt' to see the assembled prompt..." readonly></textarea>
+                    </div>
+                </div>
+
+                <!-- Projects Tab -->
+                <div id="projectsTab" class="tab-content hidden">
+                    <div class="section-card">
+                        <div class="text-xs font-medium text-gray-500 mb-3">SIMILAR PROJECTS FOUND</div>
+                        <div id="projectsContainer">
+                            <p class="text-sm text-gray-400">Projects will appear after preview/generate</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Options -->
+                <div class="section-card mt-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" id="includeSimilar" checked class="w-4 h-4">
+                                Include similar projects
+                            </label>
+                            <label class="flex items-center gap-2 text-sm">
+                                <span class="text-gray-500">Max words:</span>
+                                <input type="number" id="maxWords" value="300" min="100" max="500" class="input-field w-20 py-1 text-center">
+                            </label>
+                        </div>
+                        <button onclick="resetToDefaults()" class="text-xs text-gray-500 hover:text-gray-700">Reset to defaults</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Save Template Modal -->
+    <div id="saveModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 w-96 shadow-xl">
+            <h3 class="font-semibold mb-4">Save Template</h3>
+            <input type="text" id="templateName" class="input-field mb-3" placeholder="Template name">
+            <textarea id="templateDescription" class="input-field mb-4" rows="2" placeholder="Description (optional)"></textarea>
+            <div class="flex gap-3">
+                <button onclick="closeSaveModal()" class="btn-secondary flex-1">Cancel</button>
+                <button onclick="confirmSaveTemplate()" class="btn-primary flex-1">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        // State
+        let skills = [];
+        let templates = [];
+        let lastPrompt = '';
+        let lastProjects = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTemplates();
+            setupSkillInput();
+        });
+
+        // Skill handling
+        function setupSkillInput() {
+            const input = document.getElementById('skillInput');
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && input.value.trim()) {
+                    addSkill(input.value.trim());
+                    input.value = '';
+                }
+            });
+        }
+
+        function addSkill(skill) {
+            if (!skills.includes(skill)) {
+                skills.push(skill);
+                renderSkills();
+            }
+        }
+
+        function removeSkill(skill) {
+            skills = skills.filter(s => s !== skill);
+            renderSkills();
+        }
+
+        function renderSkills() {
+            const container = document.getElementById('skillsContainer');
+            container.innerHTML = skills.map(s => `
+                <span class="skill-tag">
+                    ${s}
+                    <button onclick="removeSkill('${s}')">&times;</button>
+                </span>
+            `).join('');
+        }
+
+        // Get instructions from form
+        function getInstructions() {
+            return {
+                hook: document.getElementById('hookInstructions').value,
+                proof: document.getElementById('proofInstructions').value,
+                approach: document.getElementById('approachInstructions').value,
+                cta: document.getElementById('ctaInstructions').value,
+                general: document.getElementById('generalInstructions').value
+            };
+        }
+
+        // Get job data
+        function getJobData() {
+            return {
+                job_title: "Job Opportunity",
+                job_description: document.getElementById('jobDescription').value,
+                company_name: "Client",
+                skills_required: skills
+            };
+        }
+
+        // Preview prompt
+        async function previewPrompt() {
+            const btn = document.getElementById('previewBtnText');
+            btn.innerHTML = '<span class="loader"></span>';
+            
+            try {
+                const response = await axios.post(`${BASE_URL}/api/lab/preview-prompt`, {
+                    ...getJobData(),
+                    instructions: getInstructions(),
+                    include_similar_projects: document.getElementById('includeSimilar').checked,
+                    similar_projects_count: 3
+                });
+                
+                lastPrompt = response.data.prompt;
+                lastProjects = response.data.similar_projects || [];
+                
+                document.getElementById('promptPreview').value = lastPrompt;
+                renderProjects(lastProjects);
+                switchTab('prompt');
+                showToast('Prompt generated');
+            } catch (error) {
+                showToast('Error: ' + (error.response?.data?.detail || error.message));
+            } finally {
+                btn.textContent = 'Preview Prompt';
+            }
+        }
+
+        // Generate proposal
+        async function generateProposal() {
+            const btn = document.getElementById('generateBtnText');
+            btn.innerHTML = '<span class="loader"></span>';
+            
+            try {
+                const response = await axios.post(`${BASE_URL}/api/lab/generate`, {
+                    ...getJobData(),
+                    instructions: getInstructions(),
+                    include_similar_projects: document.getElementById('includeSimilar').checked,
+                    similar_projects_count: 3,
+                    max_words: parseInt(document.getElementById('maxWords').value) || 300
+                });
+                
+                const proposal = response.data.proposal;
+                lastPrompt = response.data.prompt_used;
+                lastProjects = response.data.similar_projects || [];
+                
+                document.getElementById('proposalOutput').value = proposal;
+                document.getElementById('promptPreview').value = lastPrompt;
+                document.getElementById('wordCount').textContent = `${response.data.word_count} words`;
+                renderProjects(lastProjects);
+                switchTab('proposal');
+                showToast('Proposal generated!');
+            } catch (error) {
+                showToast('Error: ' + (error.response?.data?.detail || error.message));
+            } finally {
+                btn.textContent = 'Generate Proposal';
+            }
+        }
+
+        // Render similar projects
+        function renderProjects(projects) {
+            const container = document.getElementById('projectsContainer');
+            if (!projects.length) {
+                container.innerHTML = '<p class="text-sm text-gray-400">No similar projects found</p>';
+                return;
+            }
+            container.innerHTML = projects.map(p => {
+                // Handle both urls array and single url
+                const urls = p.urls || (p.url ? [p.url] : []);
+                const urlsHtml = urls.filter(u => u && u !== 'N/A').map(u => 
+                    `<a href="${u}" target="_blank" class="text-xs text-blue-600 hover:underline block">${u}</a>`
+                ).join('');
+                
+                return `
+                <div class="p-3 bg-gray-50 rounded-lg mb-2">
+                    <div class="font-medium text-sm">${p.title}</div>
+                    <div class="text-xs text-gray-500 mb-1">${p.company}</div>
+                    ${urlsHtml}
+                </div>
+            `}).join('');
+        }
+
+        // Tab switching
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(`${tab}Tab`).classList.remove('hidden');
+        }
+
+        // Templates
+        async function loadTemplates() {
+            try {
+                const response = await axios.get(`${BASE_URL}/api/lab/templates`);
+                templates = response.data;
+                renderTemplates();
+            } catch (error) {
+                console.log('Could not load templates');
+            }
+        }
+
+        function renderTemplates() {
+            const container = document.getElementById('templatesContainer');
+            if (!templates.length) {
+                container.innerHTML = '<p class="text-xs text-gray-400">No templates saved yet</p>';
+                return;
+            }
+            container.innerHTML = templates.map(t => `
+                <div class="template-item" onclick="loadTemplate('${t.id}')">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-medium text-sm">${t.name}</div>
+                            ${t.description ? `<div class="text-xs text-gray-500">${t.description}</div>` : ''}
+                        </div>
+                        <button onclick="event.stopPropagation(); deleteTemplate('${t.id}')" class="text-gray-400 hover:text-red-500 text-xs">×</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadTemplate(id) {
+            const template = templates.find(t => t.id === id);
+            if (template) {
+                document.getElementById('hookInstructions').value = template.instructions.hook;
+                document.getElementById('proofInstructions').value = template.instructions.proof;
+                document.getElementById('approachInstructions').value = template.instructions.approach;
+                document.getElementById('ctaInstructions').value = template.instructions.cta;
+                document.getElementById('generalInstructions').value = template.instructions.general;
+                showToast(`Loaded: ${template.name}`);
+            }
+        }
+
+        function saveCurrentAsTemplate() {
+            document.getElementById('saveModal').classList.remove('hidden');
+        }
+
+        function closeSaveModal() {
+            document.getElementById('saveModal').classList.add('hidden');
+            document.getElementById('templateName').value = '';
+            document.getElementById('templateDescription').value = '';
+        }
+
+        async function confirmSaveTemplate() {
+            const name = document.getElementById('templateName').value.trim();
+            if (!name) {
+                showToast('Please enter a template name');
+                return;
+            }
+            
+            try {
+                await axios.post(`${BASE_URL}/api/lab/templates`, {
+                    name: name,
+                    description: document.getElementById('templateDescription').value.trim(),
+                    instructions: getInstructions(),
+                    is_default: false
+                });
+                closeSaveModal();
+                loadTemplates();
+                showToast('Template saved!');
+            } catch (error) {
+                showToast('Error saving template');
+            }
+        }
+
+        async function deleteTemplate(id) {
+            if (!confirm('Delete this template?')) return;
+            try {
+                await axios.delete(`${BASE_URL}/api/lab/templates/${id}`);
+                loadTemplates();
+                showToast('Template deleted');
+            } catch (error) {
+                showToast('Error deleting template');
+            }
+        }
+
+        // Reset to defaults
+        async function resetToDefaults() {
+            try {
+                const response = await axios.get(`${BASE_URL}/api/lab/default-instructions`);
+                const defaults = response.data;
+                document.getElementById('hookInstructions').value = defaults.hook;
+                document.getElementById('proofInstructions').value = defaults.proof;
+                document.getElementById('approachInstructions').value = defaults.approach;
+                document.getElementById('ctaInstructions').value = defaults.cta;
+                document.getElementById('generalInstructions').value = defaults.general;
+                showToast('Reset to defaults');
+            } catch (error) {
+                showToast('Error resetting');
+            }
+        }
+
+        // Copy functions
+        function copyProposal() {
+            const text = document.getElementById('proposalOutput').value;
+            navigator.clipboard.writeText(text);
+            showToast('Proposal copied!');
+        }
+
+        function copyPrompt() {
+            navigator.clipboard.writeText(lastPrompt);
+            showToast('Prompt copied!');
+        }
+
+        // Toast
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.revert_backup/
+data/proposal_corpus.embeddings.json
+.DS_Store

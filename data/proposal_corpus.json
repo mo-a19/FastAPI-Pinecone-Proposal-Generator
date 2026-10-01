@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "101",
+      "title": "Shopify store speed optimization",
+      "company": "Sample Client A",
+      "platform": "Shopify",
+      "task_type": "Bug Fix / Optimization",
+      "industry": "E-commerce",
+      "skills": [
+        "Shopify",
+        "Liquid",
+        "JavaScript",
+        "Core Web Vitals"
+      ],
+      "tools": [
+        "Shopify",
+        "Google PageSpeed Insights"
+      ],
+      "deliverables": "Store loads in under 2.5s on mobile; PageSpeed report before/after",
+      "feedback": "Fast turnaround and clear before/after reports. Mobile score went from 38 to 87.",
+      "job_post": "Our Shopify store is slow on mobile and we're losing conversions. Need someone to audit theme code, apps and images and bring PageSpeed mobile score above 80.",
+      "proposal": "Hi, a mobile score under 40 usually comes from three things: render-blocking app scripts, unoptimized hero images, and unused theme JS. I'd start with a quick audit and share a prioritized fix list before touching code.\n\nPlan:\n1. Audit installed apps and defer non-critical scripts\n2. Convert images to WebP with responsive srcset\n3. Remove unused theme JS/CSS and lazy-load below-the-fold sections\n\nYou'll get a before/after PageSpeed report. Can you share the store URL and a collaborator access request?",
+      "content_hash": "538506c03de60f69d49dc0eb438151c0b8f137fc1dee91efee7b88445d73f86d"
+    },
+    {
+      "id": "102",
+      "title": "WordPress site redesign from Figma template",
+      "company": "Sample Client B",
+      "platform": "Wordpress",
+      "task_type": "Complete Website",
+      "industry": "Professional Services",
+      "skills": [
+        "WordPress",
+        "Elementor",
+        "Figma",
+        "Responsive Design"
+      ],
+      "tools": [
+        "WordPress",
+        "Figma"
+      ],
+      "deliverables": "Responsive WordPress site matching the provided Figma template",
+      "feedback": "Delivered a pixel-accurate redesign on time and handled all revisions quickly.",
+      "job_post": "Looking for a web designer to redesign our WordPress site to match a Figma template we'll provide. Need consistent images, mobile responsiveness and basic on-page SEO.",
+      "proposal": "Hi, happy to rebuild your site from the Figma template. I'll set up global styles first (colors, type, spacing) so every page stays consistent, then build sections as reusable blocks you can edit later.\n\nI'll also standardize image sizes and compress them so the new design stays fast. Could you share the Figma link and current site URL?",
+      "content_hash": "c401e5f84b9c0d57ba4fd5001ae43d0c88fb91287e7d35dee526b9b3f892e360"
+    },
+    {
+      "id": "103",
+      "title": "FastAPI backend with JWT auth and PostgreSQL",
+      "company": "Sample Client C",
+      "platform": "Python",
+      "task_type": "API Development",
+      "industry": "SaaS",
+      "skills": [
+        "Python",
+        "FastAPI",
+        "PostgreSQL",
+        "JWT",
+        "Docker"
+      ],
+      "tools": [
+        "FastAPI",
+        "Docker",
+        "PostgreSQL"
+      ],
+      "deliverables": "REST API with auth, CRUD endpoints, tests and Docker setup",
+      "feedback": "Clean, well-tested code and great documentation. Would hire again.",
+      "job_post": "Need a Python developer to build a REST API in FastAPI with JWT auth, role-based access, PostgreSQL via SQLAlchemy, and a Dockerized dev setup. Tests required.",
+      "proposal": "Hi, this is a stack I work with regularly. I'd structure it as routers / services / repositories so business logic stays testable, with Alembic migrations and pytest fixtures against a disposable Postgres container.\n\nDeliverables: JWT auth with refresh tokens, role-based dependencies, CRUD endpoints, OpenAPI docs and docker-compose for local dev.\n\nDo you already have a data model, or should I propose one?",
+      "content_hash": "d2173ac8c635c8057abfc37c38f3e42b0c6c642767d2ffd5d864f562e7b17336"
+    },
+    {
+      "id": "104",
+      "title": "Flutter mobile app UI implementation",
+      "company": "Sample Client D",
+      "platform": "Flutter",
+      "task_type": "Mobile App",
+      "industry": "Healthcare",
+      "skills": [
+        "Flutter",
+        "Dart",
+        "Firebase",
+        "REST API"
+      ],
+      "tools": [
+        "Flutter",
+        "Firebase"
+      ],
+      "deliverables": "Android and iOS screens implemented from Figma, connected to existing API",
+      "feedback": "Very responsive and the app UI matched the designs exactly.",
+      "job_post": "We have Figma designs for a patient appointment app and need a Flutter developer to implement ~15 screens and connect them to our existing REST API.",
+      "proposal": "Hi, I can implement the screens with a clean state-management setup (Riverpod or Bloc, whichever your team prefers) and a typed API client so endpoints stay easy to maintain.\n\nI'd deliver in weekly builds via TestFlight / internal testing so you can review progress. Is authentication already handled by the API, or does it need Firebase Auth?",
+      "content_hash": "dc9cc8de30422f098e2b18f3f88a0ec85f73f8f0276cce7fada114c9dd2c51e6"
+    },
+    {
+      "id": "105",
+      "title": "Landing page design in Figma",
+      "company": "Sample Client E",
+      "platform": "Figma",
+      "task_type": "UI/UX Design",
+      "industry": "Marketing",
+      "skills": [
+        "Figma",
+        "UI Design",
+        "Landing Page",
+        "Prototyping"
+      ],
+      "tools": [
+        "Figma"
+      ],
+      "deliverables": "Desktop and mobile landing page design with clickable prototype",
+      "feedback": "Great eye for layout and very easy to communicate with.",
+      "job_post": "Need a UI/UX designer to create a high-converting landing page in Figma for a new product launch. Desktop and mobile versions plus a clickable prototype.",
+      "proposal": "Hi, for a launch page the order of sections matters as much as the visuals. I'd start with a wireframe built around one primary CTA, then move to high-fidelity desktop and mobile frames with auto-layout so handoff to development is smooth.\n\nCould you share your brand assets and the main action you want visitors to take?",
+      "content_hash": "7ce140517ce79ca5ae36ab57cb236d19630fc53fbb96a4b7339e1761d05d7c4f"
+    },
+    {
+      "id": "106",
+      "title": "Fix checkout bug on WooCommerce store",
+      "company": "Sample Client F",
+      "platform": "Wordpress",
+      "task_type": "Bug Fix / Optimization",
+      "industry": "E-commerce",
+      "skills": [
+        "WooCommerce",
+        "PHP",
+        "WordPress",
+        "Debugging"
+      ],
+      "tools": [
+        "WordPress",
+        "WooCommerce"
+      ],
+      "deliverables": "Checkout working end to end, root cause documented",
+      "feedback": "Found and fixed the issue within hours. Explained the root cause clearly.",
+      "job_post": "URGENT: customers can't complete checkout on our WooCommerce store after a plugin update. Need someone to fix it today.",
+      "proposal": "Hi, I can look at this right away. After a plugin update, checkout failures are usually a JS conflict or a payment-gateway hook error. I'll reproduce it on a staging copy, check the error logs, and fix it without touching your live orders.\n\nCan you share admin access and tell me which plugins were updated?",
+      "content_hash": "fe7faff0572f1d745ec60dcc535a749ca12ce8fa84ff55a89963d7cc145133b4"
+    }
+  ]
+}

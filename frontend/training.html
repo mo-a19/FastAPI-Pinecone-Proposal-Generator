@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Training Platform | Proposal Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            box-sizing: border-box;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body { 
+            background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%); 
+            min-height: 100vh;
+            color: #171717;
+        }
+
+        /* Input styling */
+        .input-field {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            width: 100%;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+        
+        .input-field:hover {
+            border-color: #d4d4d4;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #171717;
+            box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.08), 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .input-field::placeholder {
+            color: #a3a3a3;
+        }
+
+        /* Select */
+        select.input-field {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+        }
+
+        /* Skill tags */
+        .skill-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #171717;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .skill-tag button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #a3a3a3;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0;
+            margin-left: 2px;
+        }
+
+        .skill-tag button:hover {
+            color: #fff;
+        }
+
+        /* Primary button */
+        .btn-primary {
+            background: #171717;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 14px 20px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(23, 23, 23, 0.12);
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary:hover {
+            background: #262626;
+            box-shadow: 0 4px 12px rgba(23, 23, 23, 0.18); 
+        }
+
+        .btn-primary:disabled {
+            background: #a3a3a3;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Secondary button */
+        .btn-secondary {
+            background: #fff;
+            color: #171717;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-weight: 500;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .btn-secondary:hover {
+            background: #fafafa;
+            border-color: #d4d4d4;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        } 
+
+        /* Danger button */
+        .btn-danger {
+            background: #fff;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-weight: 500;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-danger:hover {
+            background: #fef2f2;
+        }
+
+        /* Navigation tabs */
+        .nav-tab {
+            padding: 12px 0;
+            font-size: 14px;
+            font-weight: 500;
+            color: #737373;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+
+        .nav-tab:hover {
+            color: #171717;
+            border-bottom-color: #d4d4d4;
+        }
+
+        .nav-tab.active {
+            color: #171717;
+            border-bottom-color: #171717;
+            font-weight: 600;
+        }
+
+        /* Cards */
+        .card {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: #d4d4d4;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Stat card */
+        .stat-card {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: #d4d4d4; 
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #171717;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #737373;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-flex;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-muted {
+            background: #f5f5f5;
+            color: #525252;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Progress */
+        .progress-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(250, 250, 250, 0.98);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .progress-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .progress-modal {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            max-width: 360px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .loader {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e5e5e5;
+            border-top-color: #171717;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #171717;
+            color: #fff;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500; 
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 200;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .toast.show { 
+            opacity: 1;
+        }
+
+        /* Nav icons */
+        .nav-icon { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; color: #737373; transition: all 0.15s; cursor: pointer; text-decoration: none; position: relative; }
+        .nav-icon:hover { background: #f5f5f5; color: #171717; }
+        .nav-icon svg { width: 18px; height: 18px; }
+        .nav-icon .tooltip { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #171717; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+        .nav-icon:hover .tooltip { opacity: 1; }
+        .nav-icon.active { background: #171717; color: #fff; }
+        .nav-icon.active:hover { background: #262626; }
+        .nav-icon.active .tooltip { display: none; }
+        .user-badge { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #f5f5f5; border-radius: 6px; font-size: 12px; color: #525252; }
+        .user-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+
+        /* Image upload */
+        .upload-zone {
+            border: 2px dashed #e5e5e5;
+            border-radius: 10px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #fafafa;
+        }
+
+        .upload-zone:hover {
+            border-color: #d4d4d4;
+            background: #f5f5f5;
+        }
+
+        .upload-zone.dragover {
+            border-color: #171717;
+            background: #f0f0f0;
+            border-width: 2px;
+        }
+
+        /* Image preview */
+        .image-preview {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e5e5e5;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .image-preview .remove-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+
+        .image-preview .remove-btn:hover {
+            background: rgba(0,0,0,0.9);
+        }
+
+        /* Tab content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Table */
+        .table-row:hover {
+            background: #fafafa;
+        }
+
+        /* Feedback Tab Styling */
+        .feedback-tab {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: #737373;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .feedback-tab:hover {
+            color: #171717;
+            background: rgba(23, 23, 23, 0.02);
+        }
+
+        .feedback-tab.feedback-tab-text {
+            background: #fff;
+            color: #171717;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Feedback content animation */
+        .feedback-content {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .feedback-content.hidden {
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Image drop zone */
+        #image-drop-zone {
+            background: #fff;
+            border: 2px dashed #e5e5e5;
+            border-radius: 10px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #image-drop-zone:hover {
+            border-color: #d4d4d4;
+            background: #fafafa;
+        }
+
+        #image-drop-zone.bg-neutral-50 {
+            background: #fafafa;
+            border-color: #d4d4d4;
+        }
+
+        /* OCR Result */
+        #ocr-result {
+            background: #f9fafb;
+            border: 1px solid #e5e5e5;
+            border-radius: 10px;
+            padding: 14px;
+            animation: slideDown 0.3s ease-in-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+                overflow: hidden;
+            }
+            to {
+                opacity: 1;
+                max-height: 500px;
+            }
+        }
+
+        #ocr-result.hidden {
+            display: none;
+        }
+
+        #ocr-text {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #525252;
+        }
+
+        /* Copy button styling */
+        #ocr-result button {
+            background: none;
+            border: none;
+            color: #2563eb;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 0;
+            transition: all 0.2s ease;
+        }
+
+        #ocr-result button:hover {
+            color: #1d4ed8;
+        }
+
+        /* Image preview styling */
+        #image-preview-container {
+            margin-top: 12px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        #image-preview-container img {
+            border-radius: 10px;
+            border: 1px solid #e5e5e5;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        #image-preview-container img:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Animations */
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Collapsible Sections */
+        .collapsible-section {
+            border: 1px solid #e5e5e5;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: #fafafa;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s;
+        }
+
+        .collapsible-header:hover {
+            background: #f5f5f5;
+        }
+
+        .collapsible-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .collapsible-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #171717;
+        }
+
+        .collapsible-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #e5e5e5;
+            color: #525252;
+        }
+
+        .collapsible-badge.filled {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .collapsible-chevron {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s;
+            color: #737373;
+        }
+
+        .collapsible-section.open .collapsible-chevron {
+            transform: rotate(180deg);
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-section.open .collapsible-content {
+            max-height: 500px;
+        }
+
+        .collapsible-inner {
+            padding: 16px;
+            border-top: 1px solid #e5e5e5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress Overlay -->
+    <div class="progress-overlay" id="progress-overlay">
+        <div class="progress-modal">
+            <div class="loader"></div>
+            <p class="text-sm text-neutral-700 font-medium" id="progress-text">Uploading data...</p>
+            <p class="text-xs text-neutral-500 mt-2" id="progress-step">Storing in database</p>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Header -->
+    <header class="border-b border-neutral-200 bg-white sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                </div>
+                <span class="font-semibold text-neutral-900 text-sm">Training</span>
+                <div class="ml-4 text-right border-l border-neutral-200 pl-4">
+                    <div class="text-lg font-bold text-neutral-900" id="total-count">0</div>
+                    <div class="text-[10px] text-neutral-400 uppercase">Entries</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-1" id="nav-links">
+                <a href="index.html" class="nav-icon" title="Generate">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                    <span class="tooltip">Generate</span>
+                </a>
+                <a href="dashboard.html" class="nav-icon" title="Analytics">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    <span class="tooltip">Analytics</span>
+                </a>
+                <a href="history.html" class="nav-icon" title="History">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span class="tooltip">History</span>
+                </a>
+                <span class="nav-icon active" title="Training">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                    <span class="tooltip">Training</span>
+                </span>
+                <a href="admin.html" class="nav-icon" id="nav-admin" title="Admin" style="display:none">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    <span class="tooltip">Admin</span>
+                </a>
+                <div class="w-px h-6 bg-neutral-200 mx-2"></div>
+                <div class="user-badge" id="user-badge"><span class="dot"></span><span id="user-role">Admin</span></div>
+                <button onclick="logout()" class="nav-icon" title="Logout">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    <span class="tooltip">Logout</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <div class="max-w-5xl mx-auto px-4">
+            <div class="flex gap-8 border-t border-neutral-200 pt-3">
+                <button class="nav-tab active" data-tab="upload">Add Entry</button>
+                <button class="nav-tab" data-tab="dashboard">Dashboard</button>
+                <button class="nav-tab" data-tab="entries">All Entries</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main class="max-w-5xl mx-auto px-6 py-8">
+        
+        <!-- Upload Tab -->
+        <div id="tab-upload" class="tab-content active">
+            <div class="max-w-2xl">
+                <div class="card p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-base font-semibold text-neutral-900" id="form-title">New Portfolio Entry</h2>
+                    </div>
+                    
+                    <form id="proposal-form" class="space-y-4">
+                        <!-- Client/Company Name -->
+                        <div>
+                            <label class="block text-sm font-600 text-neutral-700 mb-2">Client / Company <span class="text-amber-600">*</span></label>
+                            <input type="text" name="client_name" id="input-client-name" placeholder="e.g., TechCorp Inc, Acme Fitness" class="input-field" required>
+                            <p class="text-xs text-neutral-500 mt-1">Who you built this for</p>
+                        </div>
+
+                        <!-- Skills (Required - always visible) -->
+                        <div>
+                            <label class="block text-sm font-600 text-neutral-700 mb-2">Skills <span class="text-amber-600">*</span></label>
+                            <div class="flex gap-2 mb-3">
+                                <input type="text" id="skill-input" placeholder="Python, React, Shopify..." class="input-field flex-1">
+                                <button type="button" onclick="addSkill()" class="btn-secondary">Add</button>
+                            </div>
+                            <div id="skills-container" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <!-- Deliverables (Required - always visible) -->
+                        <div>
+                            <label class="block text-sm font-600 text-neutral-700 mb-2">Deliverables <span class="text-amber-600">*</span></label>
+                            <p class="text-xs text-neutral-500 mb-3">What you built - helps match similar jobs</p>
+                            <div class="flex gap-2 mb-3">
+                                <input type="text" id="deliverable-input" placeholder="e.g., Custom dashboard, Payment integration" class="input-field flex-1">
+                                <button type="button" onclick="addDeliverable()" class="btn-secondary">Add</button>
+                            </div>
+                            <div id="deliverables-container" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <!-- COLLAPSIBLE: Categorization -->
+                        <div class="collapsible-section" id="section-categorization">
+                            <div class="collapsible-header" onclick="toggleSection('categorization')">
+                                <div class="collapsible-header-left">
+                                    <span class="collapsible-title">Industry & Platform</span>
+                                    <span class="collapsible-badge" id="badge-categorization">Optional</span>
+                                </div>
+                                <svg class="collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                            <div class="collapsible-content">
+                                <div class="collapsible-inner">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-600 text-neutral-700 mb-2 uppercase tracking-wide">Industry</label>
+                                            <input type="text" name="industry" id="input-industry" placeholder="SaaS, E-commerce, Healthcare..." class="input-field">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-600 text-neutral-700 mb-2 uppercase tracking-wide">Platform</label>
+                                            <div class="flex gap-2">
+                                                <select name="platform" id="portfolio-platform-select" class="input-field flex-1">
+                                                    <option value="">Select...</option>
+                                                </select>
+                                                <button type="button" onclick="autoDetectPlatform()" class="btn-secondary" title="Auto-detect">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COLLAPSIBLE: Portfolio Links -->
+                        <div class="collapsible-section" id="section-portfolio">
+                            <div class="collapsible-header" onclick="toggleSection('portfolio')">
+                                <div class="collapsible-header-left">
+                                    <span class="collapsible-title">Portfolio Links</span>
+                                    <span class="collapsible-badge" id="badge-portfolio">Optional</span>
+                                </div>
+                                <svg class="collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                            <div class="collapsible-content">
+                                <div class="collapsible-inner">
+                                    <div class="flex gap-2 mb-3">
+                                        <input type="url" id="portfolio-input" placeholder="https://github.com/..., https://live-site.com" class="input-field flex-1">
+                                        <button type="button" onclick="addPortfolio()" class="btn-secondary">Add</button>
+                                    </div>
+                                    <div id="portfolio-container" class="flex flex-wrap gap-2"></div>
+                                    <p class="text-xs text-neutral-500 mt-2">Live links to demonstrate the work</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COLLAPSIBLE: Outcome & Results -->
+                        <div class="collapsible-section" id="section-outcome">
+                            <div class="collapsible-header" onclick="toggleSection('outcome')">
+                                <div class="collapsible-header-left">
+                                    <span class="collapsible-title">Outcome & Results</span>
+                                    <span class="collapsible-badge" id="badge-outcome">Recommended</span>
+                                </div>
+                                <svg class="collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                            <div class="collapsible-content">
+                                <div class="collapsible-inner space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-600 text-neutral-700 mb-2 uppercase tracking-wide">Stats & Metrics</label>
+                                        <input type="text" name="outcome_stats" id="outcome-stats" placeholder="e.g., 4.2% conversion, 1.9s load time, +22% AOV" class="input-field">
+                                        <p class="text-xs text-neutral-500 mt-1">Numbers that prove impact</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-600 text-neutral-700 mb-2 uppercase tracking-wide">
+                                            <svg class="inline-block w-3.5 h-3.5 mr-1 text-purple-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                                            Loom Video
+                                        </label>
+                                        <input type="url" name="outcome_loom" id="outcome-loom" placeholder="https://www.loom.com/share/..." class="input-field">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COLLAPSIBLE: Client Feedback -->
+                        <div class="collapsible-section" id="section-feedback">
+                            <div class="collapsible-header" onclick="toggleSection('feedback')">
+                                <div class="collapsible-header-left">
+                                    <span class="collapsible-title">Client Feedback</span>
+                                    <span class="collapsible-badge" id="badge-feedback">Optional</span>
+                                </div>
+                                <svg class="collapsible-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                            </div>
+                            <div class="collapsible-content">
+                                <div class="collapsible-inner space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-600 text-neutral-700 mb-2 uppercase tracking-wide">Testimonial Quote</label>
+                                        <textarea name="feedback_text" id="feedback-text" placeholder="Excellent work! Delivered ahead of schedule..." rows="2" class="input-field resize-none"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-600 text-neutral-700 mb-2 uppercase tracking-wide">Review Link</label>
+                                        <input type="url" name="feedback_url" id="feedback-url" placeholder="https://upwork.com/freelancers/..." class="input-field">
+                                        <p class="text-xs text-neutral-500 mt-1">Link to Upwork profile or review page</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="flex gap-3 pt-4">
+                            <button type="submit" id="submit-btn" class="btn-primary flex-1">Add Portfolio Entry</button>
+                            <button type="button" id="cancel-edit-btn" onclick="cancelEdit()" class="btn-secondary hidden">Cancel</button>
+                            <button type="button" onclick="clearForm()" class="btn-secondary">Clear</button>
+                        </div>
+                        <input type="hidden" name="editing_contract_id" id="editing-contract-id" value="">
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="tab-dashboard" class="tab-content">
+            <div class="grid grid-cols-3 gap-4 mb-8">
+                <div class="stat-card">
+                    <div class="stat-value" id="dash-total">0</div>
+                    <div class="stat-label">Training Entries</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="dash-industries">0</div>
+                    <div class="stat-label">Industries Covered</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="dash-chunks">0</div>
+                    <div class="stat-label">Total Chunks</div>
+                </div>
+            </div>
+
+            <!-- Top row: Industries and Task Types -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="card p-6">
+                    <div class="flex items-center justify-between mb-5">
+                        <h3 class="text-sm font-600 text-neutral-900">Top Industries</h3>
+                        <div class="text-xs font-500 text-neutral-500">Project distribution</div>
+                    </div>
+                    <div id="industry-breakdown" class="space-y-3">
+                        <p class="text-sm text-neutral-500">Loading...</p>
+                    </div>
+                </div>
+
+                <div class="card p-6">
+                    <div class="flex items-center justify-between mb-5">
+                        <h3 class="text-sm font-600 text-neutral-900">Task Types</h3>
+                        <div class="text-xs font-500 text-neutral-500">Work breakdown</div>
+                    </div>
+                    <div id="task-breakdown" class="space-y-3">
+                        <p class="text-sm text-neutral-500">Loading...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom row: Most Used Skills -->
+            <div class="card p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="text-sm font-600 text-neutral-900">Most Used Skills</h3>
+                    <div class="text-xs font-500 text-neutral-500">Core competencies</div>
+                </div>
+                <div id="skills-breakdown" class="flex flex-wrap gap-3">
+                    <p class="text-sm text-neutral-500">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entries Tab -->
+        <div id="tab-entries" class="tab-content">
+            <div class="card">
+                <!-- Search & Filters -->
+                <div class="p-4 border-b border-neutral-200 flex flex-wrap gap-3 items-center">
+                    <input type="text" id="search-input" placeholder="Search by company or title..." class="input-field flex-1 min-w-48">
+                    <select id="platform-filter" class="input-field w-40">
+                        <option value="">All Platforms</option>
+                    </select>
+                    <select id="task-type-filter" class="input-field w-44">
+                        <option value="">All Task Types</option>
+                    </select>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-neutral-200 bg-neutral-50">
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">Company</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">Title</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">Platform</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">Task Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="entries-table">
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-neutral-500">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="px-4 py-3 border-t border-neutral-200 flex items-center justify-between">
+                    <p class="text-sm text-neutral-600">Showing <span id="showing-count">0</span> of <span id="total-entries">0</span></p>
+                    <div class="flex gap-2">
+                        <button id="prev-btn" class="btn-secondary" disabled>Previous</button>
+                        <button id="next-btn" class="btn-secondary" disabled>Next</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/config.js"></script>
+    <script>
+        // API_BASE is set from config.js (JOB_DATA_API)
+        const API_BASE = JOB_DATA_API;
+        
+        // Hardcoded API key (auth will be added later)
+        const API_KEY = '24f9145655e4f0e568642a2dc8614fbd3681362ce0e1582fa946afaaa451b410';
+        
+        let currentSkills = [];
+        let currentPortfolios = [];
+        let currentDeliverables = [];
+        let selectedImage = null;
+        let extractedOCRText = '';
+        
+        // Entries pagination
+        let entriesData = [];
+        let currentPage = 0;
+        const perPage = 10;
+
+        // Axios config - include API key in all requests
+        axios.interceptors.request.use(config => {
+            config.headers['X-API-Key'] = API_KEY;
+            return config;
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTabs();
+            setupEntriesView();
+            setupForm();
+            setupSkillInput();
+            setupPortfolioInput();
+            setupDeliverableInput();
+            setupBadgeListeners();
+            loadStats();
+            loadFilterOptions();
+            loadFormFromStorage();
+        });
+
+        // Load filter options from database
+        async function loadFilterOptions() {
+            try {
+                const response = await axios.get(`${API_BASE}/stats/filter-options`);
+                const { platforms } = response.data;
+                
+                // Populate platform dropdown in form
+                const platformSelect = document.getElementById('portfolio-platform-select');
+                const defaultPlatforms = ['WordPress', 'Shopify', 'Webflow', 'React', 'Vue', 'Angular', 'Node.js', 'Python', 'External'];
+                const allPlatforms = [...new Set([...defaultPlatforms, ...(platforms || [])])].sort();
+                
+                platformSelect.innerHTML = '<option value="">Select platform...</option>' + 
+                    allPlatforms.map(p => `<option value="${p}">${p}</option>`).join('') +
+                    '<option value="Custom">Custom/Other</option>';
+                
+            } catch (e) {
+                console.error('Error loading filter options:', e);
+                // Fallback to default options if API fails
+                populateDefaultOptions();
+            }
+        }
+
+        // Fallback default options
+        function populateDefaultOptions() {
+            const platformSelect = document.getElementById('portfolio-platform-select');
+            platformSelect.innerHTML = `
+                <option value="">Select platform...</option>
+                <option value="WordPress">WordPress</option>
+                <option value="Shopify">Shopify</option>
+                <option value="WooCommerce">WooCommerce</option>
+                <option value="Webflow">Webflow</option>
+                <option value="React">React</option>
+                <option value="Vue">Vue</option>
+                <option value="Angular">Angular</option>
+                <option value="Node.js">Node.js</option>
+                <option value="Python">Python</option>
+                <option value="Magento">Magento</option>
+                <option value="Drupal">Drupal</option>
+                <option value="Squarespace">Squarespace</option>
+                <option value="External">External</option>
+                <option value="Custom">Custom/Other</option>
+            `;
+        }
+
+        // === TABS ===
+        function setupTabs() {
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.getElementById(`tab-${tabName}`).classList.add('active');
+                    
+                    if (tabName === 'dashboard') loadDashboard();
+                    if (tabName === 'entries') loadEntries();
+                });
+            });
+        }
+
+        // === FORM ===
+        function setupForm() {
+            const form = document.getElementById('proposal-form');
+
+            // Auto-save on change
+            form.addEventListener('input', debounce(saveFormToStorage, 1000));
+
+            form.addEventListener('submit', handleSubmit);
+        }
+
+        function saveFormToStorage() {
+            const form = document.getElementById('proposal-form');
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            data.skills = currentSkills;
+            data.portfolios = currentPortfolios;
+            data.deliverables = currentDeliverables;
+            localStorage.setItem('training_form_draft', JSON.stringify(data));
+        }
+
+        function loadFormFromStorage() {
+            const saved = localStorage.getItem('training_form_draft');
+            if (!saved) return;
+            
+            try {
+                const data = JSON.parse(saved);
+                const form = document.getElementById('proposal-form');
+                
+                Object.keys(data).forEach(key => {
+                    if (key === 'skills') {
+                        currentSkills = data.skills || [];
+                        renderSkills();
+                    } else if (key === 'portfolios') {
+                        currentPortfolios = data.portfolios || [];
+                        renderPortfolios();
+                    } else if (key === 'deliverables') {
+                        currentDeliverables = data.deliverables || [];
+                        renderDeliverables();
+                    } else if (key === 'feedbackMode') {
+                        // Skip feedbackMode as it's no longer used
+                    } else {
+                        const field = form.elements[key];
+                        if (field) {
+                            if (field.type === 'checkbox') {
+                                field.checked = data[key] === 'on';
+                            } else {
+                                field.value = data[key] || '';
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Error loading draft:', e);
+            }
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            if (!currentSkills.length) {
+                alert('Please add at least one skill');
+                return;
+            }
+            
+            if (!currentDeliverables.length) {
+                alert('Please add at least one deliverable');
+                return;
+            }
+
+            const form = e.target;
+            const formData = new FormData(form);
+            const editingId = document.getElementById('editing-contract-id').value;
+            const isEditing = !!editingId;
+            
+            // Build structured outcome
+            const outcomeStats = formData.get('outcome_stats')?.trim() || null;
+            const outcomeLoom = formData.get('outcome_loom')?.trim() || null;
+            const outcome = (outcomeStats || outcomeLoom) ? { stats: outcomeStats, loom_url: outcomeLoom } : null;
+            
+            // Build structured client feedback
+            const feedbackText = formData.get('feedback_text')?.trim() || null;
+            const feedbackUrl = formData.get('feedback_url')?.trim() || null;
+            const clientFeedback = (feedbackText || feedbackUrl) ? { text: feedbackText, url: feedbackUrl } : null;
+            
+            // Build data object for portfolio API
+            const data = {
+                client_name: formData.get('client_name')?.trim(),
+                industry: formData.get('industry')?.trim() || null,
+                platform: formData.get('platform') || null,
+                skills: currentSkills,
+                portfolio_urls: currentPortfolios.length ? currentPortfolios : null,
+                deliverables: currentDeliverables,
+                outcome: outcome,
+                client_feedback: clientFeedback
+            };
+
+            showProgress(isEditing ? 'Updating entry...' : 'Adding portfolio entry...', 'Storing in database');
+
+            try {
+                let response;
+                if (isEditing) {
+                    // For editing, use legacy endpoint
+                    const legacyData = {
+                        company_name: data.client_name,
+                        job_title: `Project for ${data.client_name}`,
+                        job_description: `Built for ${data.client_name}. Skills: ${data.skills.join(', ')}. Deliverables: ${data.deliverables.join(', ')}.`,
+                        your_proposal_text: 'Portfolio entry.',
+                        industry: data.industry,
+                        task_type: 'portfolio',
+                        project_status: 'completed',
+                        platform: data.platform || 'External',
+                        skills_required: data.skills,
+                        portfolio_urls: data.portfolio_urls || [],
+                        deliverables: data.deliverables,
+                        outcome: data.outcome,
+                        client_feedback_text: clientFeedback?.text,
+                        client_feedback_url: clientFeedback?.url,
+                        is_portfolio_entry: true
+                    };
+                    response = await axios.put(`${API_BASE}/update/${editingId}`, legacyData);
+                } else {
+                    response = await axios.post(`${API_BASE}/portfolio`, data);
+                }
+                
+                if (response.status === 200 || response.status === 201) {
+                    hideProgress();
+                    showToast(isEditing ? 'Entry updated!' : 'Portfolio entry added!');
+                    
+                    form.reset();
+                    currentSkills = [];
+                    currentPortfolios = [];
+                    currentDeliverables = [];
+                    renderSkills();
+                    renderPortfolios();
+                    renderDeliverables();
+                    updateSectionBadges();
+                    localStorage.removeItem('training_form_draft');
+                    
+                    document.getElementById('editing-contract-id').value = '';
+                    document.getElementById('submit-btn').textContent = 'Add Portfolio Entry';
+                    document.getElementById('cancel-edit-btn').classList.add('hidden');
+                    document.getElementById('form-title').textContent = 'New Portfolio Entry';
+                    
+                    loadStats();
+                    if (isEditing) loadEntries();
+                }
+            } catch (error) {
+                hideProgress();
+                alert('Error: ' + (error.response?.data?.detail || error.message));
+            }
+        }
+
+        // Collapsible section toggle
+        function toggleSection(name) {
+            const section = document.getElementById(`section-${name}`);
+            section.classList.toggle('open');
+        }
+
+        // Update section badges based on content
+        function updateSectionBadges() {
+            // Categorization
+            const industry = document.getElementById('input-industry')?.value?.trim();
+            const platform = document.getElementById('portfolio-platform-select')?.value;
+            const catBadge = document.getElementById('badge-categorization');
+            if (catBadge) {
+                catBadge.textContent = (industry || platform) ? 'Filled' : 'Optional';
+                catBadge.classList.toggle('filled', !!(industry || platform));
+            }
+            
+            // Portfolio
+            const portBadge = document.getElementById('badge-portfolio');
+            if (portBadge) {
+                portBadge.textContent = currentPortfolios.length ? `${currentPortfolios.length} link${currentPortfolios.length > 1 ? 's' : ''}` : 'Optional';
+                portBadge.classList.toggle('filled', currentPortfolios.length > 0);
+            }
+            
+            // Outcome
+            const stats = document.getElementById('outcome-stats')?.value?.trim();
+            const loom = document.getElementById('outcome-loom')?.value?.trim();
+            const outBadge = document.getElementById('badge-outcome');
+            if (outBadge) {
+                outBadge.textContent = (stats || loom) ? 'Filled' : 'Recommended';
+                outBadge.classList.toggle('filled', !!(stats || loom));
+            }
+            
+            // Feedback
+            const fbText = document.getElementById('feedback-text')?.value?.trim();
+            const fbUrl = document.getElementById('feedback-url')?.value?.trim();
+            const fbBadge = document.getElementById('badge-feedback');
+            if (fbBadge) {
+                fbBadge.textContent = (fbText || fbUrl) ? 'Filled' : 'Optional';
+                fbBadge.classList.toggle('filled', !!(fbText || fbUrl));
+            }
+        }
+
+        // Auto-detect platform from skills
+        function autoDetectPlatform() {
+            const detected = detectPlatformFromSkills(currentSkills);
+            if (detected) {
+                document.getElementById('portfolio-platform-select').value = detected;
+                showToast(`Detected: ${detected}`);
+            } else {
+                showToast('Could not detect platform from skills');
+            }
+        }
+
+        // Platform detection from skills (matches backend logic)
+        function detectPlatformFromSkills(skills = []) {
+            const platforms = {
+                'WordPress': ['wordpress', 'wp-admin', 'elementor', 'divi', 'theme', 'plugin', 'gutenberg', 'acf', 'wp theme', 'wp plugin'],
+                'Shopify': ['shopify', 'liquid', 'shopify plus', 'shopify theme'],
+                'WooCommerce': ['woocommerce', 'woo commerce', 'woo membership', 'woomembership'],
+                'Webflow': ['webflow'],
+                'React': ['react', 'reactjs', 'react.js', 'next.js', 'nextjs', 'react native'],
+                'Vue': ['vue', 'vuejs', 'vue.js', 'nuxt'],
+                'Angular': ['angular', 'angularjs'],
+                'Node.js': ['node', 'nodejs', 'express', 'nest.js', 'nestjs'],
+                'Python': ['python', 'django', 'flask', 'fastapi'],
+                'Magento': ['magento', 'adobe commerce'],
+                'Drupal': ['drupal'],
+                'Squarespace': ['squarespace']
+            };
+            
+            const text = skills.map(s => s.toLowerCase()).join(' ');
+            
+            for (const [platform, keywords] of Object.entries(platforms)) {
+                if (keywords.some(kw => text.includes(kw))) {
+                    return platform;
+                }
+            }
+            return null;
+        }
+
+        function clearForm() {
+            if (!confirm('Clear all form data?')) return;
+            
+            const form = document.getElementById('proposal-form');
+            form.reset();
+            
+            currentSkills = [];
+            currentPortfolios = [];
+            currentDeliverables = [];
+            renderSkills();
+            renderPortfolios();
+            renderDeliverables();
+            updateSectionBadges();
+            
+            // Close all collapsible sections
+            document.querySelectorAll('.collapsible-section').forEach(s => s.classList.remove('open'));
+            
+            localStorage.removeItem('training_form_draft');
+        }
+
+        // === SKILLS ===
+        function setupSkillInput() {
+            document.getElementById('skill-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSkill();
+                }
+            });
+        }
+
+        function addSkill() {
+            const input = document.getElementById('skill-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            const skills = text.split(',').map(s => s.trim()).filter(s => s && !currentSkills.includes(s));
+            currentSkills.push(...skills);
+            renderSkills();
+            input.value = '';
+            input.focus();
+        }
+
+        function removeSkill(skill) {
+            currentSkills = currentSkills.filter(s => s !== skill);
+            renderSkills();
+        }
+
+        function renderSkills() {
+            document.getElementById('skills-container').innerHTML = currentSkills.map(skill => `
+                <div class="skill-tag">
+                    ${skill}
+                    <button type="button" onclick="removeSkill('${skill}')">×</button>
+                </div>
+            `).join('');
+        }
+
+        // === PORTFOLIOS ===
+        function setupPortfolioInput() {
+            document.getElementById('portfolio-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addPortfolio();
+                }
+            });
+        }
+
+        function addPortfolio() {
+            const input = document.getElementById('portfolio-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            try {
+                new URL(text);
+                if (!currentPortfolios.includes(text)) {
+                    currentPortfolios.push(text);
+                    renderPortfolios();
+                }
+                input.value = '';
+                input.focus();
+            } catch {
+                alert('Please enter a valid URL');
+            }
+        }
+
+        function removePortfolio(url) {
+            currentPortfolios = currentPortfolios.filter(p => p !== url);
+            renderPortfolios();
+        }
+
+        function renderPortfolios() {
+            document.getElementById('portfolio-container').innerHTML = currentPortfolios.map(url => {
+                let hostname;
+                try { hostname = new URL(url).hostname; } catch { hostname = url; }
+                return `
+                    <div class="skill-tag">
+                        ${hostname}
+                        <button type="button" onclick="removePortfolio('${url}')">×</button>
+                    </div>
+                `;
+            }).join('');
+            updateSectionBadges();
+        }
+
+        // === DELIVERABLES ===
+        function setupDeliverableInput() {
+            document.getElementById('deliverable-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addDeliverable();
+                }
+            });
+        }
+
+        function addDeliverable() {
+            const input = document.getElementById('deliverable-input');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            const items = text.split(',').map(s => s.trim()).filter(s => s && !currentDeliverables.includes(s));
+            currentDeliverables.push(...items);
+            renderDeliverables();
+            input.value = '';
+            input.focus();
+        }
+
+        function removeDeliverable(item) {
+            currentDeliverables = currentDeliverables.filter(d => d !== item);
+            renderDeliverables();
+        }
+
+        function renderDeliverables() {
+            document.getElementById('deliverables-container').innerHTML = currentDeliverables.map(item => `
+                <div class="skill-tag" style="background: #059669;">
+                    ${item}
+                    <button type="button" onclick="removeDeliverable('${item}')">×</button>
+                </div>
+            `).join('');
+        }
+
+        // Setup badge update listeners for collapsible sections
+        function setupBadgeListeners() {
+            const fields = ['input-industry', 'portfolio-platform-select', 'outcome-stats', 'outcome-loom', 'feedback-text', 'feedback-url'];
+            fields.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', updateSectionBadges);
+            });
+        }
+
+        // === STATS ===
+        async function loadStats() {
+            try {
+                const response = await axios.get(`${API_BASE}/stats/overview`);
+                document.getElementById('total-count').textContent = response.data.total_jobs || 0;
+            } catch (e) {
+                console.error('Error loading stats:', e);
+            }
+        }
+
+        // === DASHBOARD ===
+        async function loadDashboard() {
+            try {
+                const response = await axios.get(`${API_BASE}/stats/overview`);
+                const stats = response.data;
+                
+                // Key stats
+                document.getElementById('dash-total').textContent = stats.total_jobs || 0;
+                
+                // Count unique industries
+                const industryCount = stats.by_industry ? Object.keys(stats.by_industry).length : 0;
+                document.getElementById('dash-industries').textContent = industryCount;
+                
+                document.getElementById('dash-chunks').textContent = stats.total_chunks || 0;
+                
+                // Industry breakdown with minimalistic design
+                const industryEl = document.getElementById('industry-breakdown');
+                if (stats.by_industry && Object.keys(stats.by_industry).length) {
+                    industryEl.innerHTML = Object.entries(stats.by_industry)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 8)
+                        .map(([industry, count]) => {
+                            const percentage = stats.total_jobs ? ((count / stats.total_jobs) * 100).toFixed(0) : 0;
+                            return `
+                                <div class="flex items-center justify-between py-2.5 px-1 border-b border-neutral-100 hover:border-neutral-300 transition-all duration-200 last:border-0">
+                                    <span class="text-sm text-neutral-700">${industry || 'Unspecified'}</span>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-16 h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+                                            <div class="h-full bg-neutral-900 transition-all duration-300" style="width: ${Math.min(percentage, 100)}%"></div>
+                                        </div>
+                                        <span class="text-xs font-600 text-neutral-900 min-w-8 text-right">${count}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                } else {
+                    industryEl.innerHTML = '<p class="text-sm text-neutral-500 py-8 text-center">No industry data yet</p>';
+                }
+                
+                // Top skills with minimalistic tag styling
+                const skillsEl = document.getElementById('skills-breakdown');
+                if (stats.top_skills && Array.isArray(stats.top_skills) && stats.top_skills.length) {
+                    skillsEl.innerHTML = stats.top_skills.slice(0, 15).map((skill) => {
+                        return `
+                            <div class="px-4 py-2 bg-neutral-900 text-white rounded-lg text-sm font-500 transition-all duration-200 hover:bg-neutral-800 cursor-default">
+                                ${skill}
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    skillsEl.innerHTML = '<p class="text-sm text-neutral-500">No skill data yet</p>';
+                }
+                
+                // Task type distribution with minimalistic design
+                const taskEl = document.getElementById('task-breakdown');
+                if (stats.by_task_type && Object.keys(stats.by_task_type).length) {
+                    taskEl.innerHTML = Object.entries(stats.by_task_type)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 8)
+                        .map(([task, count]) => {
+                            const percentage = stats.total_jobs ? ((count / stats.total_jobs) * 100).toFixed(0) : 0;
+                            return `
+                                <div class="flex items-center justify-between py-2.5 px-1 border-b border-neutral-100 hover:border-neutral-300 transition-all duration-200 last:border-0">
+                                    <span class="text-sm text-neutral-700 capitalize">${task}</span>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-16 h-1.5 bg-neutral-200 rounded-full overflow-hidden">
+                                            <div class="h-full bg-neutral-900 transition-all duration-300" style="width: ${Math.min(percentage, 100)}%"></div>
+                                        </div>
+                                        <span class="text-xs font-600 text-neutral-900 min-w-8 text-right">${count}</span>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                } else {
+                    taskEl.innerHTML = '<p class="text-sm text-neutral-500 py-8 text-center">No task data yet</p>';
+                }
+            } catch (e) {
+                console.error('Error loading dashboard:', e);
+            }
+        }
+
+        // === ENTRIES ===
+        let allEntriesCache = []; // Cache all entries for smart filtering
+        
+        function setupEntriesView() {
+            document.getElementById('search-input').addEventListener('input', debounce(applyFilters, 300));
+            document.getElementById('platform-filter').addEventListener('change', onPlatformChange);
+            document.getElementById('task-type-filter').addEventListener('change', applyFilters);
+            document.getElementById('prev-btn').addEventListener('click', () => {
+                if (currentPage > 0) { currentPage--; renderEntries(); }
+            });
+            document.getElementById('next-btn').addEventListener('click', () => {
+                if ((currentPage + 1) * perPage < entriesData.length) { currentPage++; renderEntries(); }
+            });
+        }
+
+        // Platform detection helper - matches backend logic (fallback for entries without platform field)
+        function detectPlatform(skills = [], description = '') {
+            const platforms = {
+                'WordPress': ['wordpress', 'wp-admin', 'elementor', 'divi', 'theme', 'plugin', 'gutenberg', 'acf', 'wp theme', 'wp plugin'],
+                'Shopify': ['shopify', 'liquid', 'shopify plus', 'shopify theme'],
+                'WooCommerce': ['woocommerce', 'woo commerce', 'woo membership', 'woomembership'],
+                'Webflow': ['webflow'],
+                'React': ['react', 'reactjs', 'react.js', 'next.js', 'nextjs', 'react native'],
+                'Vue': ['vue', 'vuejs', 'vue.js', 'nuxt'],
+                'Angular': ['angular', 'angularjs'],
+                'Magento': ['magento', 'adobe commerce'],
+                'Drupal': ['drupal'],
+                'Squarespace': ['squarespace'],
+                'Python': ['python', 'django', 'flask', 'fastapi'],
+                'Node.js': ['node', 'nodejs', 'express', 'nest.js', 'nestjs']
+            };
+            
+            const text = [...skills.map(s => s.toLowerCase()), (description || '').toLowerCase()].join(' ');
+            
+            for (const [platform, keywords] of Object.entries(platforms)) {
+                if (keywords.some(kw => text.includes(kw))) {
+                    return platform;
+                }
+            }
+            return null;
+        }
+
+        // Load entries and build dynamic filters
+        async function loadEntries() {
+            try {
+                const response = await axios.get(`${API_BASE}/list?limit=100`);
+                allEntriesCache = (response.data.items || []).map(e => ({
+                    ...e,
+                    // Use stored platform directly - no fallback detection
+                    _platform: e.platform || null
+                }));
+                
+                buildDynamicFilters();
+                applyFilters();
+            } catch (e) {
+                console.error('Error loading entries:', e.response?.data || e.message);
+                const errMsg = e.response?.data?.detail || e.message || 'Unknown error';
+                document.getElementById('entries-table').innerHTML = `
+                    <tr><td colspan="5" class="px-4 py-8 text-center text-red-600">Error: ${errMsg}</td></tr>
+                `;
+            }
+        }
+
+        // Build filter dropdowns from API endpoint (database values)
+        async function buildDynamicFilters() {
+            try {
+                const response = await axios.get(`${API_BASE}/stats/filter-options`);
+                const { task_types, platforms } = response.data;
+                
+                // Populate platform filter
+                const platformSelect = document.getElementById('platform-filter');
+                platformSelect.innerHTML = '<option value="">All Platforms</option>' + 
+                    platforms.map(p => `<option value="${p}">${p}</option>`).join('');
+                
+                // Populate task type filter
+                const taskSelect = document.getElementById('task-type-filter');
+                taskSelect.innerHTML = '<option value="">All Task Types</option>' + 
+                    task_types.map(t => `<option value="${t}">${t.charAt(0).toUpperCase() + t.slice(1)}</option>`).join('');
+                
+            } catch (e) {
+                console.error('Error loading filter options:', e);
+                // Fallback: extract from cached entries
+                buildFiltersFromCache();
+            }
+        }
+
+        // Fallback: Build filters from cached entries
+        function buildFiltersFromCache() {
+            // Get unique platforms from cache
+            const platforms = [...new Set(allEntriesCache.map(e => e._platform).filter(Boolean))].sort();
+            const platformSelect = document.getElementById('platform-filter');
+            platformSelect.innerHTML = '<option value="">All Platforms</option>' + 
+                platforms.map(p => `<option value="${p}">${p}</option>`).join('');
+            
+            // Get unique task types from cache
+            const taskTypes = [...new Set(allEntriesCache.map(e => e.task_type).filter(Boolean))].sort();
+            const taskSelect = document.getElementById('task-type-filter');
+            taskSelect.innerHTML = '<option value="">All Task Types</option>' + 
+                taskTypes.map(t => `<option value="${t}">${t.charAt(0).toUpperCase() + t.slice(1)}</option>`).join('');
+        }
+
+        // Handle platform change - just filter, no cascade
+        function onPlatformChange() {
+            applyFilters();
+        }
+
+        // Apply all filters
+        function applyFilters() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const platform = document.getElementById('platform-filter').value;
+            const taskType = document.getElementById('task-type-filter').value;
+            
+            entriesData = allEntriesCache.filter(e => {
+                const matchSearch = !search || 
+                    (e.company_name || '').toLowerCase().includes(search) ||
+                    (e.job_title || '').toLowerCase().includes(search);
+                const matchPlatform = !platform || e._platform === platform;
+                const matchTaskType = !taskType || e.task_type === taskType;
+                return matchSearch && matchPlatform && matchTaskType;
+            });
+            
+            currentPage = 0;
+            renderEntries();
+        }
+
+        function renderEntries() {
+            const start = currentPage * perPage;
+            const end = start + perPage;
+            const page = entriesData.slice(start, end);
+            
+            const tbody = document.getElementById('entries-table');
+            
+            if (!page.length) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-neutral-500">No entries found</td></tr>`;
+            } else {
+                tbody.innerHTML = page.map((e, idx) => {
+                    const isPortfolio = e.is_portfolio_entry || e.task_type === 'portfolio' || (e.company_name && e.company_name.startsWith('Portfolio-'));
+                    return `
+                    <tr class="border-b border-neutral-200 table-row">
+                        <td class="px-4 py-3">
+                            <p class="font-medium text-neutral-900">${isPortfolio ? '📁 ' : ''}${e.company_name}</p>
+                            <p class="text-xs text-neutral-500">${e.contract_id}</p>
+                        </td>
+                        <td class="px-4 py-3 text-neutral-700">${e.job_title}${isPortfolio ? ' <span class="text-xs text-amber-600 font-medium">(Portfolio)</span>' : ''}</td>
+                        <td class="px-4 py-3">
+                            ${e.platform || e._platform ? `<span class="badge ${isPortfolio ? 'badge-warning' : 'badge-info'}">${e.platform || e._platform}</span>` : '<span class="text-neutral-400">-</span>'}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="badge badge-muted capitalize">${e.task_type || '-'}</span>
+                        </td>
+                        <td class="px-4 py-3 flex gap-2">
+                            <button onclick="editEntry('${e.contract_id}')" class="btn-secondary text-xs py-1 px-3">Edit</button>
+                            <button onclick="deleteEntry('${e.contract_id}', '${e.company_name}')" class="btn-danger">Delete</button>
+                        </td>
+                    </tr>
+                `}).join('');
+            }
+            
+            document.getElementById('showing-count').textContent = Math.min(end, entriesData.length);
+            document.getElementById('total-entries').textContent = entriesData.length;
+            document.getElementById('prev-btn').disabled = currentPage === 0;
+            document.getElementById('next-btn').disabled = end >= entriesData.length;
+        }
+
+        // Edit entry - load data into form
+        async function editEntry(contractId) {
+            try {
+                const response = await axios.get(`${API_BASE}/${contractId}`);
+                const entry = response.data;
+                
+                // Switch to upload tab
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelector('[data-tab="upload"]').classList.add('active');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById('tab-upload').classList.add('active');
+                
+                // Fill form - use new field names
+                document.getElementById('input-client-name').value = entry.company_name || entry.client_name || '';
+                document.getElementById('input-industry').value = entry.industry || '';
+                
+                // Outcome fields - check new structured format first, then legacy
+                if (entry.outcome) {
+                    document.getElementById('outcome-stats').value = entry.outcome.stats || '';
+                    document.getElementById('outcome-loom').value = entry.outcome.loom_url || '';
+                } else if (entry.outcomes && typeof entry.outcomes === 'string') {
+                    // Legacy fallback - outcomes is a plain string
+                    document.getElementById('outcome-stats').value = entry.outcomes;
+                    document.getElementById('outcome-loom').value = '';
+                } else {
+                    document.getElementById('outcome-stats').value = '';
+                    document.getElementById('outcome-loom').value = '';
+                }
+                
+                // Client feedback
+                document.getElementById('feedback-text').value = entry.client_feedback_text || '';
+                document.getElementById('feedback-url').value = entry.client_feedback_url || '';
+                
+                // Platform - check if exists in options, add if not
+                const platformSelect = document.getElementById('portfolio-platform-select');
+                const platformValue = entry.platform || '';
+                if (platformValue && ![...platformSelect.options].some(opt => opt.value === platformValue)) {
+                    const newOption = document.createElement('option');
+                    newOption.value = platformValue;
+                    newOption.textContent = platformValue;
+                    platformSelect.insertBefore(newOption, platformSelect.querySelector('option[value="Custom"]'));
+                }
+                platformSelect.value = platformValue;
+                
+                // Skills
+                currentSkills = entry.skills_required || [];
+                renderSkills();
+                
+                // Portfolios
+                currentPortfolios = entry.portfolio_urls || [];
+                renderPortfolios();
+                
+                // Deliverables
+                currentDeliverables = entry.deliverables || [];
+                renderDeliverables();
+                
+                // Set edit mode
+                document.getElementById('editing-contract-id').value = contractId;
+                document.getElementById('submit-btn').textContent = 'Update Entry';
+                document.getElementById('cancel-edit-btn').classList.remove('hidden');
+                
+                // Update form title
+                document.getElementById('form-title').textContent = `Editing: ${entry.company_name || entry.client_name || 'Entry'}`;
+                
+                // Open collapsible sections that have data
+                if (entry.industry || entry.platform) toggleSection('categorization', true);
+                if (entry.portfolio_urls?.length) toggleSection('portfolio', true);
+                if (entry.outcome?.stats || entry.outcome?.loom_url || entry.outcomes) toggleSection('outcome', true);
+                if (entry.client_feedback_text || entry.client_feedback_url) toggleSection('feedback', true);
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                showToast('Entry loaded for editing');
+                
+            } catch (e) {
+                alert('Error loading entry: ' + (e.response?.data?.detail || e.message));
+            }
+        }
+
+        // Cancel edit mode
+        function cancelEdit() {
+            clearForm();
+            document.getElementById('editing-contract-id').value = '';
+            document.getElementById('submit-btn').textContent = 'Add Portfolio Entry';
+            document.getElementById('cancel-edit-btn').classList.add('hidden');
+            document.getElementById('form-title').textContent = 'New Portfolio Entry';
+        }
+
+        async function deleteEntry(id, name) {
+            if (!confirm(`Delete "${name}" and all its data?`)) return;
+            
+            try {
+                await axios.delete(`${API_BASE}/delete/${id}`);
+                showToast('Entry deleted');
+                loadEntries();
+                loadStats();
+            } catch (e) {
+                alert('Error: ' + (e.response?.data?.detail || e.message));
+            }
+        }
+
+        // === UTILS ===
+        function showProgress(text, step) {
+            document.getElementById('progress-text').textContent = text;
+            document.getElementById('progress-step').textContent = step;
+            document.getElementById('progress-overlay').classList.add('show');
+        }
+
+        function hideProgress() {
+            document.getElementById('progress-overlay').classList.remove('show');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        function debounce(fn, delay) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), delay);
+            };
+        }
+
+        // Helper functions
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function truncateUrl(url) {
+            if (!url) return '';
+            try {
+                const u = new URL(url);
+                const path = u.pathname.length > 20 ? u.pathname.substring(0, 20) + '...' : u.pathname;
+                return u.hostname + path;
+            } catch {
+                return url.length > 40 ? url.substring(0, 40) + '...' : url;
+            }
+        }
+    </script>
+</body>
+</html>

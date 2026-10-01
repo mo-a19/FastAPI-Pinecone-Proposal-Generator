@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Entry | Proposal Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; box-sizing: border-box; }
+        body { background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%); min-height: 100vh; color: #171717; }
+
+        .input-field {
+            background: #fff; border: 1px solid #e5e5e5; border-radius: 8px;
+            padding: 11px 14px; font-size: 14px; transition: border-color .15s, box-shadow .15s;
+            width: 100%; line-height: 1.5;
+        }
+        .input-field:hover { border-color: #d4d4d4; }
+        .input-field:focus { outline: none; border-color: #171717; box-shadow: 0 0 0 3px rgba(23,23,23,.08); }
+        .input-field::placeholder { color: #a3a3a3; }
+
+        textarea.input-field { resize: vertical; min-height: 140px; font-family: inherit; }
+
+        .skill-tag {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #171717; color: #fff; padding: 5px 10px;
+            border-radius: 6px; font-size: 12.5px; font-weight: 500;
+            animation: tag-in .15s ease;
+        }
+        .skill-tag button {
+            background: none; border: none; cursor: pointer; color: #a3a3a3;
+            font-size: 14px; line-height: 1; padding: 0;
+        }
+        .skill-tag button:hover { color: #fff; }
+        @keyframes tag-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+
+        .btn-primary {
+            background: #171717; color: #fff; border: none; border-radius: 8px;
+            padding: 12px 20px; font-weight: 600; font-size: 14px; cursor: pointer;
+            transition: background .15s, box-shadow .15s; letter-spacing: .2px;
+        }
+        .btn-primary:hover { background: #262626; box-shadow: 0 4px 12px rgba(23,23,23,.18); }
+        .btn-primary:disabled { background: #a3a3a3; cursor: not-allowed; box-shadow: none; }
+
+        .btn-secondary {
+            background: #fff; color: #171717; border: 1px solid #e5e5e5; border-radius: 8px;
+            padding: 9px 14px; font-weight: 500; font-size: 13px; cursor: pointer;
+            transition: background .15s, border-color .15s;
+        }
+        .btn-secondary:hover { background: #fafafa; border-color: #d4d4d4; }
+
+        .card {
+            background: #fff; border: 1px solid #e5e5e5; border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.03);
+        }
+
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: #171717; color: #fff; padding: 12px 20px; border-radius: 8px;
+            font-size: 13.5px; font-weight: 500; opacity: 0; transition: opacity .25s ease;
+            z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,.18); pointer-events: none;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #dc2626; }
+        .toast.success { background: #059669; }
+
+        .nav-icon {
+            width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+            border-radius: 8px; color: #737373; transition: background .15s, color .15s;
+            cursor: pointer; text-decoration: none;
+        }
+        .nav-icon:hover { background: #f5f5f5; color: #171717; }
+        .nav-icon.active { background: #171717; color: #fff; }
+
+        .entry-row {
+            border: 1px solid #f0f0f0; border-radius: 10px; padding: 14px 16px;
+            transition: border-color .15s, box-shadow .15s, background .15s;
+        }
+        .entry-row:hover { border-color: #d4d4d4; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+
+        .icon-btn {
+            background: none; border: none; padding: 6px; border-radius: 6px;
+            color: #737373; cursor: pointer; transition: background .15s, color .15s;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .icon-btn:hover { background: #f5f5f5; color: #171717; }
+        .icon-btn.danger:hover { background: #fef2f2; color: #dc2626; }
+
+        kbd {
+            background: #f5f5f5; border: 1px solid #e5e5e5; border-bottom-width: 2px;
+            border-radius: 4px; padding: 1px 6px; font-size: 11px; font-family: ui-monospace, monospace;
+            color: #525252;
+        }
+
+        .field-label {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 6px; font-size: 13px; font-weight: 500; color: #404040;
+        }
+        .field-label .hint { font-size: 11.5px; color: #a3a3a3; font-weight: 400; }
+
+        .skills-input-wrap { position: relative; }
+        .skills-counter {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            font-size: 11px; color: #a3a3a3; pointer-events: none;
+        }
+
+        .empty-state {
+            text-align: center; padding: 40px 20px; color: #737373;
+        }
+        .empty-state svg { margin: 0 auto 12px; color: #d4d4d4; }
+
+        details summary { display: flex; align-items: center; justify-content: space-between; }
+        details summary .chevron { transition: transform .28s ease; color: #a3a3a3; flex-shrink: 0; margin-left: 8px; }
+        details[open] > summary .chevron { transform: rotate(180deg); }
+        .panel-body { overflow: hidden; transition: max-height .3s ease, opacity .22s ease; }
+
+        .pager { display:flex; align-items:center; justify-content:center; gap:6px; padding-top:16px; border-top:1px solid #f0f0f0; margin-top:12px; }
+        .pager button {
+            width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+            background:#fff; border:1px solid #e5e5e5; border-radius:8px;
+            font-size:15px; cursor:pointer; color:#404040; transition:background .15s, border-color .15s, color .15s;
+        }
+        .pager button:hover:not(:disabled) { background:#171717; border-color:#171717; color:#fff; }
+        .pager button:disabled { opacity:.3; cursor:default; }
+        .pager span { font-size:12px; color:#a3a3a3; padding:0 6px; }
+
+        .outcome-toggle { display: inline-flex; background: #f5f5f5; border-radius: 8px; padding: 3px; gap: 2px; }
+        .outcome-toggle button {
+            border: none; border-radius: 6px; padding: 6px 14px; font-size: 13px; font-weight: 500;
+            cursor: pointer; transition: background .15s, color .15s, box-shadow .15s; color: #737373; background: transparent;
+        }
+        .outcome-toggle button.active { background: #fff; color: #171717; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+        .outcome-toggle button.active.hired { color: #059669; }
+        .outcome-toggle button.active.not-closed { color: #d97706; }
+        .badge-hired { display:inline-block; background:#d1fae5; color:#065f46; border-radius:5px; padding:2px 8px; font-size:11.5px; font-weight:600; }
+        .badge-not-closed { display:inline-block; background:#fef3c7; color:#92400e; border-radius:5px; padding:2px 8px; font-size:11.5px; font-weight:600; }
+    </style>
+</head>
+<body>
+    <header class="border-b border-neutral-200 bg-white sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-neutral-900 flex items-center justify-center text-white font-semibold">D</div>
+                <h1 class="text-base font-semibold">Data Entry</h1>
+                <span class="text-xs text-neutral-400 hidden sm:inline">Title · Description · Skills</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <a href="index.html" class="nav-icon" title="Home">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </a>
+                <span class="nav-icon active" title="Data Entry">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-6 py-8 space-y-6">
+        <!-- Entry Form -->
+        <section class="card p-6">
+            <details id="entry-panel">
+                <summary class="cursor-pointer select-none text-base font-semibold text-neutral-900">New Entry <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></summary>
+                <div class="panel-body"><div>
+                <div class="flex items-center justify-between mb-5 mt-2">
+                    <p class="text-xs text-neutral-500 mt-0.5">Saved to production database for keyword analysis.</p>
+                    <div class="text-xs text-neutral-400 hidden md:flex items-center gap-2">
+                        <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to save
+                    </div>
+                </div>
+
+                <form id="entry-form" class="space-y-4" autocomplete="off">
+                <div>
+                    <label class="field-label" for="title-input">
+                        <span>Title <span class="text-amber-600">*</span></span>
+                        <span class="hint" id="title-counter">0 / 300</span>
+                    </label>
+                    <input type="text" id="title-input" maxlength="300" placeholder="e.g., Senior Full-Stack Engineer with React + Node" class="input-field" required>
+                </div>
+
+                <div>
+                    <label class="field-label" for="description-input">
+                        <span>Description <span class="text-amber-600">*</span></span>
+                        <span class="hint" id="desc-counter">0 / 20000</span>
+                    </label>
+                    <textarea id="description-input" maxlength="20000" placeholder="Paste the full job description, scope, deliverables and any context that helps keyword extraction…" class="input-field" required></textarea>
+                </div>
+
+                <div>
+                    <label class="field-label" for="skill-input">
+                        <span>Skills <span class="text-amber-600">*</span></span>
+                        <span class="hint">Press <kbd>Enter</kbd> or <kbd>,</kbd> to add · paste comma-separated lists</span>
+                    </label>
+                    <div class="skills-input-wrap">
+                        <input type="text" id="skill-input" placeholder="Type a skill and press Enter" class="input-field" style="padding-right:90px;">
+                        <span class="skills-counter" id="skills-counter">0 skills</span>
+                    </div>
+                    <div id="skills-container" class="flex flex-wrap gap-2 mt-3"></div>
+                </div>
+
+                <div>
+                    <label class="field-label" for="budget-input">Budget</label>
+                    <input type="text" id="budget-input" maxlength="100" placeholder="e.g. $500 fixed, $30/hr" class="input-field">
+                </div>
+
+                <div class="flex items-center justify-between gap-3 pt-2">
+                    <button type="button" id="reset-btn" class="btn-secondary">Clear</button>
+                    <button type="submit" id="save-btn" class="btn-primary">
+                        <span id="save-btn-label">Save Entry</span>
+                    </button>
+                </div>
+                </form>
+
+                <div class="mt-6 pt-6 border-t border-neutral-200">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h2 class="text-base font-semibold text-neutral-900">Recent Entries</h2>
+                            <p class="text-xs text-neutral-500 mt-0.5"><span id="entries-total">0</span> total</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="search" id="search-input" placeholder="Search title, description, skills…" class="input-field" style="padding:8px 12px;font-size:13px;width:220px;">
+                            <button type="button" id="refresh-btn" class="btn-secondary" title="Refresh">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="entries-list" class="space-y-2.5">
+                        <p class="text-sm text-neutral-500">Loading…</p>
+                    </div>
+                    <div id="entries-pagination"></div>
+                </div>
+                </div></div>
+            </details>
+        </section>
+
+        <section class="card p-6">
+            <details id="proposal-training-panel">
+                <summary class="cursor-pointer select-none text-base font-semibold text-neutral-900">Proposal Training Entry <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></summary>
+                <div class="panel-body"><div>
+                <p class="text-xs text-neutral-500 mt-2">Saved to a separate MongoDB collection for future training.</p>
+
+                <form id="proposal-training-form" class="space-y-4 mt-4" autocomplete="off">
+                    <div>
+                        <label class="field-label" for="proposal-job-description-input">
+                            <span>Job Description <span class="text-amber-600">*</span></span>
+                            <span class="hint" id="proposal-job-desc-counter">0 / 20000</span>
+                        </label>
+                        <textarea id="proposal-job-description-input" maxlength="20000" placeholder="Paste the job description here" class="input-field" required></textarea>
+                    </div>
+
+                    <div>
+                        <label class="field-label" for="proposal-skill-input">
+                            <span>Skills <span class="text-amber-600">*</span></span>
+                            <span class="hint">Press <kbd>Enter</kbd> or <kbd>,</kbd> to add · paste comma-separated lists</span>
+                        </label>
+                        <div class="skills-input-wrap">
+                            <input type="text" id="proposal-skill-input" placeholder="Type a skill and press Enter" class="input-field" style="padding-right:90px;">
+                            <span class="skills-counter" id="proposal-skills-counter">0 skills</span>
+                        </div>
+                        <div id="proposal-skills-container" class="flex flex-wrap gap-2 mt-3"></div>
+                    </div>
+
+                    <div>
+                        <label class="field-label" for="proposal-written-input">
+                            <span>Proposal Written <span class="text-amber-600">*</span></span>
+                            <span class="hint" id="proposal-written-counter">0 / 30000</span>
+                        </label>
+                        <textarea id="proposal-written-input" maxlength="30000" placeholder="Paste your written proposal" class="input-field" required></textarea>
+                    </div>
+
+                    <div>
+                        <label class="field-label">Outcome</label>
+                        <div class="outcome-toggle" id="outcome-toggle">
+                            <button type="button" class="active hired" data-value="hired">Got Hired</button>
+                            <button type="button" data-value="discussed">Discussed</button>
+                        </div>
+                    </div>
+
+                    <label class="flex items-center gap-2.5 cursor-pointer select-none w-fit">
+                        <input type="checkbox" id="invited-checkbox" class="w-4 h-4 rounded accent-neutral-900 cursor-pointer">
+                        <span class="text-sm text-neutral-700">Client sent an invite for this job</span>
+                    </label>
+
+                    <div class="flex items-center justify-between gap-3 pt-1">
+                        <button type="button" id="proposal-reset-btn" class="btn-secondary">Clear</button>
+                        <button type="submit" id="proposal-save-btn" class="btn-primary">
+                            <span id="proposal-save-btn-label">Save Proposal Entry</span>
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-6">
+                    <h3 class="text-sm font-semibold text-neutral-900">Recent Proposal Entries</h3>
+                    <p class="text-xs text-neutral-500 mt-0.5"><span id="proposal-entries-total">0</span> total</p>
+                    <div id="proposal-entries-list" class="space-y-2.5 mt-3">
+                        <p class="text-sm text-neutral-500">Loading…</p>
+                    </div>
+                    <div id="proposal-entries-pagination"></div>
+                </div>
+                </div></div>
+            </details>
+        </section>
+    </main>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="js/config.js"></script>
+    <script>
+        const API_BASE = (typeof BASE_URL !== 'undefined' ? BASE_URL : window.location.origin) + '/api/data-entries';
+        const PROPOSAL_API_BASE = (typeof BASE_URL !== 'undefined' ? BASE_URL : window.location.origin) + '/api/proposal-training-entries';
+
+        const entryPanel   = document.getElementById('entry-panel');
+        const titleInput   = document.getElementById('title-input');
+        const descInput    = document.getElementById('description-input');
+        const skillInput   = document.getElementById('skill-input');
+        const skillsBox    = document.getElementById('skills-container');
+        const skillsCounter= document.getElementById('skills-counter');
+        const titleCounter = document.getElementById('title-counter');
+        const descCounter  = document.getElementById('desc-counter');
+        const form         = document.getElementById('entry-form');
+        const saveBtn      = document.getElementById('save-btn');
+        const saveBtnLabel = document.getElementById('save-btn-label');
+        const resetBtn     = document.getElementById('reset-btn');
+        const entriesList  = document.getElementById('entries-list');
+        const entriesTotal = document.getElementById('entries-total');
+        const refreshBtn   = document.getElementById('refresh-btn');
+        const searchInput  = document.getElementById('search-input');
+        const toast        = document.getElementById('toast');
+        const proposalForm = document.getElementById('proposal-training-form');
+        const budgetInput  = document.getElementById('budget-input');
+        const proposalSkillInput = document.getElementById('proposal-skill-input');
+        const proposalSkillsBox = document.getElementById('proposal-skills-container');
+        const proposalSkillsCounter = document.getElementById('proposal-skills-counter');
+        const proposalJobDescriptionInput = document.getElementById('proposal-job-description-input');
+        const proposalWrittenInput = document.getElementById('proposal-written-input');
+        const proposalJobDescCounter = document.getElementById('proposal-job-desc-counter');
+        const proposalWrittenCounter = document.getElementById('proposal-written-counter');
+        const proposalSaveBtn = document.getElementById('proposal-save-btn');
+        const proposalSaveBtnLabel = document.getElementById('proposal-save-btn-label');
+        const proposalResetBtn = document.getElementById('proposal-reset-btn');
+        const proposalEntriesList = document.getElementById('proposal-entries-list');
+        const proposalEntriesTotal = document.getElementById('proposal-entries-total');
+        const outcomeToggle = document.getElementById('outcome-toggle');
+        const invitedCheckbox = document.getElementById('invited-checkbox');
+
+        let proposalOutcome = 'hired';
+
+        outcomeToggle.addEventListener('click', e => {
+            const btn = e.target.closest('button[data-value]');
+            if (!btn) return;
+            proposalOutcome = btn.dataset.value;
+            outcomeToggle.querySelectorAll('button').forEach(b => {
+                b.classList.toggle('active', b === btn);
+                b.classList.toggle('hired', b === btn && b.dataset.value === 'hired');
+                b.classList.toggle('not-closed', b === btn && b.dataset.value === 'discussed');
+            });
+        });
+
+        let currentSkills = [];
+        let proposalSkills = [];
+        let editingId = null;
+        let proposalEditingId = null;
+        let searchTimer = null;
+        let entriesPage = 1;
+        let proposalPage = 1;
+        const PAGE_SIZE = 10;
+        const entriesPager = document.getElementById('entries-pagination');
+        const proposalPager = document.getElementById('proposal-entries-pagination');
+
+        function renderPagination(el, page, total, onNav) {
+            const pages = Math.ceil(total / PAGE_SIZE) || 1;
+            if (pages <= 1) { el.innerHTML = ''; return; }
+            el.innerHTML = `<div class="pager">
+                <button ${page <= 1 ? 'disabled' : ''} data-d="-1" title="Previous">&#8592;</button>
+                <span>${page} / ${pages}</span>
+                <button ${page >= pages ? 'disabled' : ''} data-d="1" title="Next">&#8594;</button>
+            </div>`;
+            el.querySelectorAll('button').forEach(b =>
+                b.addEventListener('click', () => onNav(page + +b.dataset.d))
+            );
+        }
+
+        // ---------- Helpers ----------
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function showToast(msg, type = 'success') {
+            toast.textContent = msg;
+            toast.className = 'toast show ' + type;
+            clearTimeout(showToast._t);
+            showToast._t = setTimeout(() => toast.classList.remove('show'), 2400);
+        }
+
+        function updateCounters() {
+            titleCounter.textContent = `${titleInput.value.length} / 300`;
+            descCounter.textContent  = `${descInput.value.length} / 20000`;
+            skillsCounter.textContent = `${currentSkills.length} skill${currentSkills.length === 1 ? '' : 's'}`;
+        }
+
+        function renderSkills() {
+            skillsBox.innerHTML = '';
+            currentSkills.forEach((s, i) => {
+                const tag = document.createElement('span');
+                tag.className = 'skill-tag';
+                tag.innerHTML = `${escapeHtml(s)}<button type="button" aria-label="Remove ${escapeHtml(s)}">&times;</button>`;
+                tag.querySelector('button').addEventListener('click', () => {
+                    currentSkills.splice(i, 1);
+                    renderSkills();
+                });
+                skillsBox.appendChild(tag);
+            });
+            updateCounters();
+        }
+
+        function addSkillsFromText(raw) {
+            if (!raw) return;
+            raw.split(/[,\n;]+/).map(s => s.trim()).filter(Boolean).forEach(s => {
+                const exists = currentSkills.some(x => x.toLowerCase() === s.toLowerCase());
+                if (!exists) currentSkills.push(s);
+            });
+            renderSkills();
+        }
+
+        function resetForm() {
+            editingId = null;
+            titleInput.value = '';
+            descInput.value = '';
+            skillInput.value = '';
+            budgetInput.value = '';
+            currentSkills = [];
+            renderSkills();
+            saveBtnLabel.textContent = 'Save Entry';
+            updateCounters();
+        }
+
+        function updateProposalCounters() {
+            proposalJobDescCounter.textContent = `${proposalJobDescriptionInput.value.length} / 20000`;
+            proposalWrittenCounter.textContent = `${proposalWrittenInput.value.length} / 30000`;
+            proposalSkillsCounter.textContent = `${proposalSkills.length} skill${proposalSkills.length === 1 ? '' : 's'}`;
+        }
+
+        function renderProposalSkills() {
+            proposalSkillsBox.innerHTML = '';
+            proposalSkills.forEach((s, i) => {
+                const tag = document.createElement('span');
+                tag.className = 'skill-tag';
+                tag.innerHTML = `${escapeHtml(s)}<button type="button" aria-label="Remove ${escapeHtml(s)}">&times;</button>`;
+                tag.querySelector('button').addEventListener('click', () => {
+                    proposalSkills.splice(i, 1);
+                    renderProposalSkills();
+                });
+                proposalSkillsBox.appendChild(tag);
+            });
+            updateProposalCounters();
+        }
+
+        function addProposalSkillsFromText(raw) {
+            if (!raw) return;
+            raw.split(/[,\n;]+/).map(s => s.trim()).filter(Boolean).forEach(s => {
+                const exists = proposalSkills.some(x => x.toLowerCase() === s.toLowerCase());
+                if (!exists) proposalSkills.push(s);
+            });
+            renderProposalSkills();
+        }
+
+        function resetProposalForm() {
+            proposalEditingId = null;
+            proposalJobDescriptionInput.value = '';
+            proposalWrittenInput.value = '';
+            proposalSkillInput.value = '';
+            proposalSkills = [];
+            proposalOutcome = 'hired';
+            invitedCheckbox.checked = false;
+            outcomeToggle.querySelectorAll('button').forEach(b => {
+                const isHired = b.dataset.value === 'hired';
+                b.classList.toggle('active', isHired);
+                b.classList.toggle('hired', isHired);
+                b.classList.remove('not-closed');
+            });
+            renderProposalSkills();
+            proposalSaveBtnLabel.textContent = 'Save Proposal Entry';
+            updateProposalCounters();
+        }
+
+        // ---------- Skill input handlers ----------
+        skillInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                addSkillsFromText(skillInput.value);
+                skillInput.value = '';
+            } else if (e.key === 'Backspace' && !skillInput.value && currentSkills.length) {
+                currentSkills.pop();
+                renderSkills();
+            }
+        });
+        skillInput.addEventListener('paste', e => {
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            if (text && /[,\n;]/.test(text)) {
+                e.preventDefault();
+                addSkillsFromText(text);
+                skillInput.value = '';
+            }
+        });
+        skillInput.addEventListener('blur', () => {
+            if (skillInput.value.trim()) {
+                addSkillsFromText(skillInput.value);
+                skillInput.value = '';
+            }
+        });
+
+        titleInput.addEventListener('input', updateCounters);
+        descInput.addEventListener('input', updateCounters);
+
+        proposalSkillInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ',') {
+                e.preventDefault();
+                addProposalSkillsFromText(proposalSkillInput.value);
+                proposalSkillInput.value = '';
+            } else if (e.key === 'Backspace' && !proposalSkillInput.value && proposalSkills.length) {
+                proposalSkills.pop();
+                renderProposalSkills();
+            }
+        });
+        proposalSkillInput.addEventListener('paste', e => {
+            const text = (e.clipboardData || window.clipboardData).getData('text');
+            if (text && /[,\n;]/.test(text)) {
+                e.preventDefault();
+                addProposalSkillsFromText(text);
+                proposalSkillInput.value = '';
+            }
+        });
+        proposalSkillInput.addEventListener('blur', () => {
+            if (proposalSkillInput.value.trim()) {
+                addProposalSkillsFromText(proposalSkillInput.value);
+                proposalSkillInput.value = '';
+            }
+        });
+
+        proposalJobDescriptionInput.addEventListener('input', updateProposalCounters);
+        proposalWrittenInput.addEventListener('input', updateProposalCounters);
+
+        // ---------- Submit ----------
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            // Flush any pending skill text
+            if (skillInput.value.trim()) {
+                addSkillsFromText(skillInput.value);
+                skillInput.value = '';
+            }
+            const title = titleInput.value.trim();
+            const description = descInput.value.trim();
+            const budget = budgetInput.value.trim();
+            if (!title) return showToast('Title is required', 'error');
+            if (!description) return showToast('Description is required', 'error');
+            if (currentSkills.length === 0) return showToast('Add at least one skill', 'error');
+
+            saveBtn.disabled = true;
+            saveBtnLabel.textContent = editingId ? 'Updating…' : 'Saving…';
+
+            try {
+                const url = editingId ? `${API_BASE}/${editingId}` : API_BASE;
+                const method = editingId ? 'PUT' : 'POST';
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, description, skills: currentSkills, budget }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.detail || 'Failed to save');
+                showToast(editingId ? 'Entry updated' : 'Entry saved');
+                resetForm();
+                titleInput.focus();
+                loadEntries(1);
+            } catch (err) {
+                showToast(err.message || 'Save failed', 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtnLabel.textContent = editingId ? 'Update Entry' : 'Save Entry';
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            if (titleInput.value || descInput.value || currentSkills.length || editingId) {
+                if (!confirm('Clear the form?')) return;
+            }
+            resetForm();
+            titleInput.focus();
+        });
+
+        // Ctrl/Cmd + Enter to submit
+        document.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                const activeForm = document.activeElement && document.activeElement.closest('form');
+                if (activeForm && activeForm.id === 'proposal-training-form') {
+                    proposalForm.requestSubmit();
+                } else {
+                    form.requestSubmit();
+                }
+            }
+        });
+
+        // ---------- List ----------
+        async function loadEntries(page = entriesPage) {
+            entriesPage = page;
+            entriesList.innerHTML = '<p class="text-sm text-neutral-500">Loading…</p>';
+            entriesPager.innerHTML = '';
+            try {
+                const q = searchInput.value.trim();
+                const params = new URLSearchParams({ limit: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE });
+                if (q) params.set('search', q);
+                const res = await fetch(`${API_BASE}?${params.toString()}`);
+                if (!res.ok) throw new Error('Failed to load');
+                const data = await res.json();
+                const total = data.total ?? data.count ?? 0;
+                entriesTotal.textContent = total;
+                if (!data.items || data.items.length === 0) {
+                    entriesList.innerHTML = `
+                        <div class="empty-state">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            <p class="text-sm">No entries${q ? ' match your search' : ' yet'}.</p>
+                        </div>`;
+                    return;
+                }
+                entriesList.innerHTML = data.items.map(item => {
+                    const skills = (item.skills || []).map(s =>
+                        `<span class="skill-tag" style="padding:3px 9px;font-size:11.5px;">${escapeHtml(s)}</span>`
+                    ).join('');
+                    const date = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+                    const desc = (item.description || '').slice(0, 220);
+                    return `
+                    <article class="entry-row" data-id="${item.id}">
+                        <div class="flex items-start justify-between gap-3 mb-2">
+                            <h3 class="font-semibold text-neutral-900 text-sm leading-snug">${escapeHtml(item.title)}</h3>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button class="icon-btn edit-btn" title="Edit">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                                <button class="icon-btn danger del-btn" title="Delete">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-neutral-600 leading-relaxed mb-2 whitespace-pre-line">${escapeHtml(desc)}${item.description && item.description.length > 220 ? '…' : ''}</p>
+                        <div class="flex flex-wrap gap-1.5 mb-2">${skills}</div>
+                        ${item.budget ? `<div class="text-[11px] text-neutral-500 mb-1">&#36; ${escapeHtml(item.budget)}</div>` : ''}
+                        <div class="text-[11px] text-neutral-400">${escapeHtml(date)}</div>
+                    </article>`;
+                }).join('');
+
+                entriesList.querySelectorAll('.del-btn').forEach(btn =>
+                    btn.addEventListener('click', () => deleteEntry(btn.closest('.entry-row').dataset.id))
+                );
+                entriesList.querySelectorAll('.edit-btn').forEach(btn =>
+                    btn.addEventListener('click', () => {
+                        const item = data.items.find(i => i.id === btn.closest('.entry-row').dataset.id);
+                        if (item) startEdit(item);
+                    })
+                );
+                renderPagination(entriesPager, page, total, loadEntries);
+            } catch (err) {
+                entriesList.innerHTML = '<p class="text-sm text-red-600">Failed to load entries.</p>';
+            }
+        }
+
+        function startEdit(item) {
+            editingId = item.id;
+            titleInput.value = item.title || '';
+            descInput.value = item.description || '';
+            budgetInput.value = item.budget || '';
+            currentSkills = [...(item.skills || [])];
+            renderSkills();
+            saveBtnLabel.textContent = 'Update Entry';
+            entryPanel.open = true;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            titleInput.focus();
+            showToast('Editing entry — Save to update');
+        }
+
+        async function deleteEntry(id) {
+            if (!confirm('Delete this entry? This cannot be undone.')) return;
+            try {
+                const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data.detail || 'Failed to delete');
+                }
+                showToast('Entry deleted');
+                if (editingId === id) resetForm();
+                loadEntries(entriesPage);
+            } catch (err) {
+                showToast(err.message || 'Delete failed', 'error');
+            }
+        }
+
+        refreshBtn.addEventListener('click', () => loadEntries(1));
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => loadEntries(1), 280);
+        });
+
+        // ---------- Proposal training entries ----------
+        proposalForm.addEventListener('submit', async e => {
+            e.preventDefault();
+
+            const job_description = proposalJobDescriptionInput.value.trim();
+            const proposal_written = proposalWrittenInput.value.trim();
+            if (proposalSkillInput.value.trim()) {
+                addProposalSkillsFromText(proposalSkillInput.value);
+                proposalSkillInput.value = '';
+            }
+            const skills = [...proposalSkills];
+
+            if (!job_description) return showToast('Job description is required', 'error');
+            if (skills.length === 0) return showToast('Add at least one skill', 'error');
+            if (!proposal_written) return showToast('Proposal written is required', 'error');
+
+            proposalSaveBtn.disabled = true;
+            proposalSaveBtnLabel.textContent = 'Saving…';
+
+            try {
+                const wasEditing = !!proposalEditingId;
+                const url = proposalEditingId ? `${PROPOSAL_API_BASE}/${proposalEditingId}` : PROPOSAL_API_BASE;
+                const res = await fetch(url, {
+                    method: proposalEditingId ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_description, skills, proposal_written, outcome: proposalOutcome, invited: invitedCheckbox.checked }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.detail || 'Failed to save proposal entry');
+
+                resetProposalForm();
+                showToast(wasEditing ? 'Proposal entry updated' : 'Proposal entry saved');
+                loadProposalEntries(1);
+            } catch (err) {
+                showToast(err.message || 'Save failed', 'error');
+            } finally {
+                proposalSaveBtn.disabled = false;
+                proposalSaveBtnLabel.textContent = proposalEditingId ? 'Update Entry' : 'Save Proposal Entry';
+            }
+        });
+
+        async function loadProposalEntries(page = proposalPage) {
+            proposalPage = page;
+            proposalEntriesList.innerHTML = '<p class="text-sm text-neutral-500">Loading…</p>';
+            proposalPager.innerHTML = '';
+            try {
+                const params = new URLSearchParams({ limit: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE });
+                const res = await fetch(`${PROPOSAL_API_BASE}?${params.toString()}`);
+                if (!res.ok) throw new Error('Failed to load');
+                const data = await res.json();
+                const total = data.total ?? data.count ?? 0;
+                proposalEntriesTotal.textContent = total;
+
+                if (!data.items || data.items.length === 0) {
+                    proposalEntriesList.innerHTML = '<div class="empty-state"><p class="text-sm">No proposal entries yet.</p></div>';
+                    return;
+                }
+
+                proposalEntriesList.innerHTML = data.items.map(item => {
+                    const skills = (item.skills || []).map(s =>
+                        `<span class="skill-tag" style="padding:3px 9px;font-size:11.5px;">${escapeHtml(s)}</span>`
+                    ).join('');
+                    const date = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+                    return `
+                        <article class="entry-row" data-id="${item.id}">
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <div class="flex items-center gap-2">
+                                    <p class="text-xs text-neutral-500">${escapeHtml(date)}</p>
+                                    ${item.outcome === 'discussed'
+                                        ? '<span class="badge-not-closed">Discussed</span>'
+                                        : '<span class="badge-hired">Hired</span>'}
+                                    ${item.invited ? '<span style="display:inline-block;background:#eff6ff;color:#1d4ed8;border-radius:5px;padding:2px 8px;font-size:11.5px;font-weight:600;">Invited</span>' : ''}
+                                </div>
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <button class="icon-btn p-edit-btn" title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                                    <button class="icon-btn danger p-del-btn" title="Delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>
+                                </div>
+                            </div>
+                            <p class="text-sm text-neutral-700 leading-relaxed mb-2 whitespace-pre-line">${escapeHtml((item.job_description || '').slice(0, 220))}${item.job_description && item.job_description.length > 220 ? '…' : ''}</p>
+                            <div class="flex flex-wrap gap-1.5 mb-2">${skills}</div>
+                            <p class="text-sm text-neutral-900 leading-relaxed whitespace-pre-line">${escapeHtml((item.proposal_written || '').slice(0, 280))}${item.proposal_written && item.proposal_written.length > 280 ? '…' : ''}</p>
+                        </article>`;
+                }).join('');
+
+                proposalEntriesList.querySelectorAll('.p-del-btn').forEach(btn =>
+                    btn.addEventListener('click', () => deleteProposalEntry(btn.closest('.entry-row').dataset.id))
+                );
+                proposalEntriesList.querySelectorAll('.p-edit-btn').forEach(btn =>
+                    btn.addEventListener('click', () => {
+                        const item = data.items.find(i => i.id === btn.closest('.entry-row').dataset.id);
+                        if (item) startProposalEdit(item);
+                    })
+                );
+                renderPagination(proposalPager, page, total, loadProposalEntries);
+            } catch (err) {
+                proposalEntriesList.innerHTML = '<p class="text-sm text-red-600">Failed to load proposal entries.</p>';
+            }
+        }
+
+        function startProposalEdit(item) {
+            proposalEditingId = item.id;
+            proposalJobDescriptionInput.value = item.job_description || '';
+            proposalWrittenInput.value = item.proposal_written || '';
+            proposalSkills = [...(item.skills || [])];
+            proposalOutcome = item.outcome === 'discussed' ? 'discussed' : 'hired';
+            invitedCheckbox.checked = !!item.invited;
+            outcomeToggle.querySelectorAll('button').forEach(b => {
+                const active = b.dataset.value === proposalOutcome;
+                b.classList.toggle('active', active);
+                b.classList.toggle('hired', active && b.dataset.value === 'hired');
+                b.classList.toggle('not-closed', active && b.dataset.value === 'discussed');
+            });
+            renderProposalSkills();
+            proposalSaveBtnLabel.textContent = 'Update Entry';
+            const panel = document.getElementById('proposal-training-panel');
+            panel.open = true;
+            window.scrollTo({ top: panel.getBoundingClientRect().top + window.scrollY - 20, behavior: 'smooth' });
+            proposalJobDescriptionInput.focus();
+            showToast('Editing proposal — Save to update');
+        }
+
+        async function deleteProposalEntry(id) {
+            if (!confirm('Delete this proposal entry? This cannot be undone.')) return;
+            try {
+                const res = await fetch(`${PROPOSAL_API_BASE}/${id}`, { method: 'DELETE' });
+                if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.detail || 'Failed to delete'); }
+                showToast('Proposal entry deleted');
+                if (proposalEditingId === id) resetProposalForm();
+                loadProposalEntries(proposalPage);
+            } catch (err) { showToast(err.message || 'Delete failed', 'error'); }
+        }
+
+        proposalResetBtn.addEventListener('click', () => {
+            if (proposalJobDescriptionInput.value || proposalWrittenInput.value || proposalSkills.length) {
+                if (!confirm('Clear the form?')) return;
+            }
+            resetProposalForm();
+            proposalJobDescriptionInput.focus();
+        });
+
+        // Smooth collapse/expand for all <details> with .panel-body
+        document.querySelectorAll('details').forEach(d => {
+            const body = d.querySelector('.panel-body');
+            if (!body) return;
+            d.querySelector('summary').addEventListener('click', e => {
+                e.preventDefault();
+                if (d.open) {
+                    body.style.maxHeight = body.scrollHeight + 'px';
+                    body.style.opacity = '1';
+                    requestAnimationFrame(() => requestAnimationFrame(() => {
+                        body.style.maxHeight = '0';
+                        body.style.opacity = '0';
+                        body.addEventListener('transitionend', () => { d.open = false; body.style.maxHeight = body.style.opacity = ''; }, { once: true });
+                    }));
+                } else {
+                    d.open = true;
+                    const h = body.scrollHeight;
+                    body.style.maxHeight = '0';
+                    body.style.opacity = '0';
+                    requestAnimationFrame(() => requestAnimationFrame(() => {
+                        body.style.maxHeight = h + 'px';
+                        body.style.opacity = '1';
+                        body.addEventListener('transitionend', () => { body.style.maxHeight = body.style.opacity = ''; }, { once: true });
+                    }));
+                }
+            });
+        });
+
+        // Init
+        renderSkills();
+        renderProposalSkills();
+        loadEntries();
+        loadProposalEntries();
+        updateProposalCounters();
+        titleInput.focus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="image.png">
+    <title>Proposal Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+        body { background: #fafafa; min-height: 100vh; }
+        
+        /* Inputs */
+        .input-field { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 12px 14px; font-size: 14px; transition: all 0.15s; width: 100%; }
+        .input-field:hover { border-color: #d4d4d4; }
+        .input-field:focus { outline: none; border-color: #171717; box-shadow: 0 0 0 3px rgba(0,0,0,0.04); }
+        
+        /* Skills */
+        .skill-tag { display: inline-flex; align-items: center; gap: 6px; background: #171717; color: #fff; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: 500; }
+        .skill-tag button { background: none; border: none; cursor: pointer; color: #a3a3a3; font-size: 13px; padding: 0; line-height: 1; }
+        .skill-tag button:hover { color: #fff; }
+        
+        /* Buttons */
+        .btn-primary { background: #171717; color: #fff; border: none; border-radius: 8px; padding: 12px 18px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.15s; }
+        .btn-primary:hover { background: #262626; }
+        .btn-primary:disabled { background: #a3a3a3; cursor: not-allowed; }
+        
+        /* Toggle */
+        .toggle-container { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; cursor: pointer; }
+        .toggle-switch { width: 36px; height: 20px; background: #e5e5e5; border-radius: 10px; position: relative; transition: background 0.2s; }
+        .toggle-switch.active { background: #171717; }
+        .toggle-switch::after { content: ''; position: absolute; width: 16px; height: 16px; background: #fff; border-radius: 50%; top: 2px; left: 2px; transition: transform 0.2s; }
+        .toggle-switch.active::after { transform: translateX(16px); }
+        
+        /* Loader */
+        .loader { width: 18px; height: 18px; border: 2px solid #e5e5e5; border-top-color: #171717; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Proposal */
+        .proposal-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; overflow: hidden; }
+        .proposal-body { padding: 20px; font-size: 14px; line-height: 1.8; color: #404040; white-space: pre-wrap; max-height: 400px; overflow-y: auto; }
+        .proposal-body-editable { padding: 20px; font-size: 14px; line-height: 1.8; color: #171717; white-space: pre-wrap; min-height: 200px; border-left: 2px solid #171717; background: #fafafa; outline: none; }
+        
+        /* Toast */
+        .toast { position: fixed; bottom: 20px; right: 20px; background: #171717; color: #fff; padding: 10px 14px; border-radius: 6px; font-size: 13px; opacity: 0; transform: translateY(8px); transition: all 0.2s; z-index: 100; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        
+        /* Hook Question Modal */
+        .hq-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+        .hq-overlay.visible { opacity: 1; pointer-events: auto; }
+        .hq-modal { background: #fff; border-radius: 16px; max-width: 540px; width: 92%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px -12px rgba(0,0,0,0.25); border: 1px solid #e5e5e5; transform: translateY(12px); transition: transform 0.2s; }
+        .hq-overlay.visible .hq-modal { transform: translateY(0); }
+        .hq-card { padding: 14px 16px; border: 1.5px solid #e5e5e5; border-radius: 10px; cursor: pointer; transition: all 0.15s; background: #fff; }
+        .hq-card:hover { border-color: #171717; background: #fafafa; }
+        .hq-card.selected { border-color: #171717; background: #f5f5f5; box-shadow: 0 0 0 2px rgba(23,23,23,0.08); }
+        .hq-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .hq-badge.diagnostic { background: #dbeafe; color: #1d4ed8; }
+        .hq-badge.scope_clarification { background: #fef3c7; color: #92400e; }
+        .hq-badge.empathy { background: #fce7f3; color: #9d174d; }
+        .hq-badge.engagement { background: #d1fae5; color: #065f46; }
+        
+        /* Auth */
+        .auth-overlay { position: fixed; inset: 0; background: rgba(250,250,250,0.95); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .auth-overlay.hidden { display: none; }
+        .auth-modal { background: #fff; border-radius: 16px; padding: 32px; max-width: 340px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); border: 1px solid #e5e5e5; }
+        
+        /* Nav Icons */
+        .nav-icon { width: 36px; height: 36px; display: none; align-items: center; justify-content: center; border-radius: 8px; color: #737373; transition: all 0.15s; cursor: pointer; text-decoration: none; position: relative; }
+        .nav-icon:hover { background: #f5f5f5; color: #171717; }
+        .nav-icon.visible { display: flex; }
+        .nav-icon svg { width: 18px; height: 18px; }
+        .nav-icon .tooltip { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); background: #171717; color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 11px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+        .nav-icon:hover .tooltip { opacity: 1; }
+        .nav-icon.active { background: #171717; color: #fff; }
+        .nav-icon.active:hover { background: #262626; }
+        .nav-icon.active .tooltip { display: none; }
+        
+        /* Info cards */
+        .info-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 14px; }
+        .info-title { font-size: 11px; font-weight: 600; color: #a3a3a3; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+        .project-item { padding: 10px; background: #fafafa; border-radius: 6px; margin-bottom: 6px; }
+        .project-item:last-child { margin-bottom: 0; }
+        .link-item { display: inline-block; padding: 6px 10px; background: #f5f5f5; border-radius: 5px; font-size: 12px; color: #525252; text-decoration: none; margin: 3px; }
+        .link-item:hover { background: #e5e5e5; color: #171717; }
+        
+        /* Action buttons */
+        .action-btn { display: inline-flex; align-items: center; gap: 4px; background: transparent; color: #737373; border: none; padding: 6px 8px; font-size: 12px; cursor: pointer; border-radius: 4px; }
+        .action-btn:hover { color: #171717; background: #f5f5f5; }
+        .action-btn.primary { background: #171717; color: #fff; }
+        .action-btn.primary:hover { background: #262626; }
+        
+        /* User badge */
+        .user-badge { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #f5f5f5; border-radius: 6px; font-size: 12px; color: #525252; }
+        .user-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+    </style>
+</head>
+<body>
+    <!-- Auth Modal -->
+    <div class="auth-overlay hidden" id="auth-overlay">
+        <div class="auth-modal">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-neutral-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#171717" stroke-width="2"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M13.8 12H3"/></svg>
+                </div>
+                <h1 class="text-lg font-semibold text-neutral-900">Welcome Back</h1>
+                <p class="text-sm text-neutral-500 mt-1">Enter your API key to continue</p>
+            </div>
+            <form onsubmit="authenticate(event)">
+                <div class="relative mb-3">
+                    <input type="password" id="api-key-input" class="input-field pr-10" placeholder="pk_xxxxxxxx..." required autocomplete="off">
+                    <button type="button" onclick="toggleKeyVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600">
+                        <svg id="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+                <label class="flex items-center gap-2 mb-4 text-xs text-neutral-500 cursor-pointer select-none">
+                    <input type="checkbox" id="remember-key" checked class="accent-neutral-900 w-3.5 h-3.5"> Remember on this device
+                </label>
+                <button type="submit" class="btn-primary w-full flex items-center justify-center gap-2" id="auth-btn">
+                    <span>Continue</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+                <p class="text-xs text-red-500 text-center mt-3 min-h-[16px]" id="auth-error"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="border-b border-neutral-200 bg-white sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+                </div>
+                <span class="font-semibold text-neutral-900 text-sm">Proposal Generator</span>
+            </div>
+            
+            <div class="flex items-center gap-1" id="nav-links">
+                <!-- Generate -->
+                <span class="nav-icon active" id="nav-generate" title="Generate">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                </span>
+                <!-- Analytics -->
+                <a href="dashboard.html" class="nav-icon" id="nav-analytics" title="Analytics">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    <span class="tooltip">Analytics</span>
+                </a>
+                <!-- History -->
+                <a href="history.html" class="nav-icon" id="nav-history" title="History">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span class="tooltip">History</span>
+                </a>
+                <!-- Training -->
+                <a href="training.html" class="nav-icon" id="nav-training" title="Training">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                    <span class="tooltip">Training</span>
+                </a>
+                <!-- Admin -->
+                <a href="admin.html" class="nav-icon" id="nav-admin" title="Admin">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    <span class="tooltip">Admin</span>
+                </a>
+                
+                <div class="w-px h-6 bg-neutral-200 mx-2" id="nav-divider"></div>
+                
+                <!-- User info -->
+                <div class="user-badge" id="user-badge" style="display:none">
+                    <span class="dot"></span>
+                    <span id="user-role">User</span>
+                </div>
+                
+                <!-- Logout -->
+                <button onclick="logout()" class="nav-icon" id="logout-btn" style="display:none" title="Logout">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                    <span class="tooltip">Logout</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 py-6">
+        <div class="grid lg:grid-cols-12 gap-6">
+            <!-- Left: Form (4 cols) -->
+            <div class="lg:col-span-4">
+                <div class="bg-white border border-neutral-200 rounded-xl p-5 sticky top-20">
+                    <h2 class="text-sm font-semibold text-neutral-900 mb-4">Job Details</h2>
+                    <form id="proposal-form" class="space-y-4">
+                        <!-- Skills -->
+                        <div>
+                            <label class="block text-xs font-medium text-neutral-600 mb-1.5">Skills</label>
+                            <div class="flex gap-2 mb-2">
+                                <input type="text" id="skill-input" placeholder="Python, FastAPI..." class="input-field text-sm py-2.5">
+                                <button type="button" onclick="addSkills()" class="px-3 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-lg text-sm font-medium transition-colors">+</button>
+                            </div>
+                            <div id="skills-container" class="flex flex-wrap gap-1.5"></div>
+                        </div>
+                        
+                        <!-- Job Description -->
+                        <div>
+                            <label class="block text-xs font-medium text-neutral-600 mb-1.5">Job Description</label>
+                            <textarea id="job_description" placeholder="Paste the job posting here..." rows="6" class="input-field text-sm resize-none" required></textarea>
+                        </div>
+                        
+                        <!-- Timeline Toggle -->
+                        <div class="toggle-container" onclick="toggleTimeline()">
+                            <div>
+                                <p class="text-sm font-medium text-neutral-700">Include Timeline</p>
+                                <p class="text-xs text-neutral-400">Add delivery estimate</p>
+                            </div>
+                            <div id="timeline-toggle" class="toggle-switch"></div>
+                        </div>
+                        <div id="timeline-input" class="hidden">
+                            <input type="text" id="timeline_duration" placeholder="e.g., 2-3 weeks" class="input-field text-sm">
+                        </div>
+                        
+                        <!-- Submit -->
+                        <button type="submit" id="generate-btn" class="btn-primary w-full">
+                            Generate Proposal
+                        </button>
+
+                        <!-- Find Similar Past Project (RAG lookup) -->
+                        <button type="button" id="similar-job-btn"
+                                class="w-full mt-2 px-4 py-2.5 border border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50 text-neutral-700 hover:text-neutral-900 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                            <span id="similar-job-btn-label">Find Similar Past Proposal</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right: Output (8 cols) -->
+            <div class="lg:col-span-8">
+                <!-- Empty State -->
+                <div id="empty-state" class="bg-white border border-neutral-200 border-dashed rounded-xl p-16 text-center">
+                    <div class="w-12 h-12 bg-neutral-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                    </div>
+                    <p class="text-neutral-500 text-sm">Add skills and job description to generate</p>
+                </div>
+
+                <!-- Loading State with Progress Steps -->
+                <div id="loading-state" class="hidden bg-white border border-neutral-200 rounded-xl overflow-hidden">
+                    <!-- Header with timer -->
+                    <div class="px-6 py-4 border-b border-neutral-100 bg-gradient-to-r from-neutral-50 to-white">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-white animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8h6.1l-4.9 3.6 1.9 5.8-4.9-3.6-4.9 3.6 1.9-5.8-4.9-3.6h6.1z"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-semibold text-neutral-800">Generating Proposal</h3>
+                                    <p class="text-xs text-neutral-500">AI is analyzing your requirements</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div id="elapsed-time" class="text-lg font-mono font-semibold text-neutral-700">0.0s</div>
+                                <p class="text-[10px] text-neutral-400 uppercase tracking-wide">Elapsed</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Steps -->
+                    <div class="p-6">
+                        <div id="progress-steps" class="space-y-2">
+                            <!-- Step 1 -->
+                            <div class="step group flex items-center gap-4 p-3 rounded-lg transition-all duration-300 hover:bg-neutral-50" data-step="1">
+                                <div class="step-icon w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-400 transition-all duration-300 shrink-0">
+                                    <svg class="w-5 h-5 icon-default" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                                    <svg class="w-5 h-5 icon-active hidden animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                    <svg class="w-5 h-5 icon-done hidden text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-neutral-400 step-message transition-colors duration-300">Analyzing job requirements</p>
+                                    <p class="text-xs text-neutral-300 mt-0.5">Extract key skills, industry & preferences</p>
+                                </div>
+                                <div class="step-badge hidden px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full shrink-0">Done</div>
+                            </div>
+                            
+                            <!-- Step 2 -->
+                            <div class="step group flex items-center gap-4 p-3 rounded-lg transition-all duration-300 hover:bg-neutral-50" data-step="2">
+                                <div class="step-icon w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-400 transition-all duration-300 shrink-0">
+                                    <svg class="w-5 h-5 icon-default" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                    <svg class="w-5 h-5 icon-active hidden animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                    <svg class="w-5 h-5 icon-done hidden text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-neutral-400 step-message transition-colors duration-300">Finding similar projects</p>
+                                    <p class="text-xs text-neutral-300 mt-0.5">Semantic search in portfolio database</p>
+                                </div>
+                                <div class="step-badge hidden px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full shrink-0">Done</div>
+                            </div>
+                            
+                            <!-- Step 3 -->
+                            <div class="step group flex items-center gap-4 p-3 rounded-lg transition-all duration-300 hover:bg-neutral-50" data-step="3">
+                                <div class="step-icon w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-400 transition-all duration-300 shrink-0">
+                                    <svg class="w-5 h-5 icon-default" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                                    <svg class="w-5 h-5 icon-active hidden animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                    <svg class="w-5 h-5 icon-done hidden text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-neutral-400 step-message transition-colors duration-300">Gathering evidence</p>
+                                    <p class="text-xs text-neutral-300 mt-0.5">Collect portfolio links & client feedback</p>
+                                </div>
+                                <div class="step-badge hidden px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full shrink-0">Done</div>
+                            </div>
+                            
+                            <!-- Step 4 -->
+                            <div class="step group flex items-center gap-4 p-3 rounded-lg transition-all duration-300 hover:bg-neutral-50" data-step="4">
+                                <div class="step-icon w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-400 transition-all duration-300 shrink-0">
+                                    <svg class="w-5 h-5 icon-default" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+                                    <svg class="w-5 h-5 icon-active hidden animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                    <svg class="w-5 h-5 icon-done hidden text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-neutral-400 step-message transition-colors duration-300">Building prompt</p>
+                                    <p class="text-xs text-neutral-300 mt-0.5">Optimize context for AI generation</p>
+                                </div>
+                                <div class="step-badge hidden px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full shrink-0">Done</div>
+                            </div>
+                            
+                            <!-- Step 5 -->
+                            <div class="step group flex items-center gap-4 p-3 rounded-lg transition-all duration-300 hover:bg-neutral-50" data-step="5">
+                                <div class="step-icon w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-400 transition-all duration-300 shrink-0">
+                                    <svg class="w-5 h-5 icon-default" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.8h6.1l-4.9 3.6 1.9 5.8-4.9-3.6-4.9 3.6 1.9-5.8-4.9-3.6h6.1z"/></svg>
+                                    <svg class="w-5 h-5 icon-active hidden animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                    <svg class="w-5 h-5 icon-done hidden text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-neutral-400 step-message transition-colors duration-300">Writing proposal</p>
+                                    <p class="text-xs text-neutral-300 mt-0.5">GPT-4o generating personalized text</p>
+                                </div>
+                                <div class="step-badge hidden px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full shrink-0">Done</div>
+                            </div>
+                            
+                            <!-- Step 6 -->
+                            <div class="step group flex items-center gap-4 p-3 rounded-lg transition-all duration-300 hover:bg-neutral-50" data-step="6">
+                                <div class="step-icon w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-400 transition-all duration-300 shrink-0">
+                                    <svg class="w-5 h-5 icon-default" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                                    <svg class="w-5 h-5 icon-active hidden animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                    <svg class="w-5 h-5 icon-done hidden text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-neutral-400 step-message transition-colors duration-300">Quality check</p>
+                                    <p class="text-xs text-neutral-300 mt-0.5">Scoring relevance & completeness</p>
+                                </div>
+                                <div class="step-badge hidden px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full shrink-0">Done</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Live preview during generation -->
+                    <div id="streaming-preview" class="hidden border-t border-neutral-100">
+                        <div class="px-6 py-3 bg-neutral-50 border-b border-neutral-100">
+                            <div class="flex items-center gap-2">
+                                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span class="text-xs font-medium text-neutral-500">Live Preview</span>
+                            </div>
+                        </div>
+                        <div id="streaming-text" class="px-6 py-4 text-sm text-neutral-600 whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed"></div>
+                    </div>
+                </div>
+
+                <!-- Result State -->
+                <div id="result-state" class="hidden space-y-4">
+                    <!-- Proposal Card -->
+                    <div class="proposal-card">
+                        <div class="p-4 border-b border-neutral-100 flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="text-center px-3">
+                                    <div class="text-lg font-bold text-neutral-900" id="word-count">0</div>
+                                    <div class="text-[10px] text-neutral-400 uppercase">Words</div>
+                                </div>
+                                <div class="w-px h-8 bg-neutral-100"></div>
+                                <div class="text-center px-3">
+                                    <div class="text-lg font-bold text-green-600" id="quality-score">0%</div>
+                                    <div class="text-[10px] text-neutral-400 uppercase">Quality</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button onclick="toggleEditMode()" id="edit-btn" class="action-btn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    <span id="edit-btn-text">Edit</span>
+                                </button>
+                                <button onclick="copyToClipboard()" class="action-btn">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                    Copy
+                                </button>
+                                <button onclick="saveAndSend()" id="save-send-btn" class="action-btn primary">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                                    Save
+                                </button>
+                            </div>
+                        </div>
+                        <div id="edit-mode-banner" class="hidden bg-amber-50 border-b border-amber-100 px-4 py-2 flex items-center justify-between">
+                            <p class="text-xs text-amber-700">Editing mode • Press Escape to exit</p>
+                            <div class="flex gap-2">
+                                <button onclick="cancelEdit()" class="text-xs text-amber-600 hover:text-amber-800">Cancel</button>
+                                <button onclick="saveEdit()" class="text-xs font-medium text-amber-800">Done</button>
+                            </div>
+                        </div>
+                        <div id="proposal-text" class="proposal-body"></div>
+                    </div>
+
+                    <!-- Quick Adjustments -->
+                    <div class="flex items-center gap-2 px-1">
+                        <span class="text-[11px] text-neutral-400">Adjust:</span>
+                        <button onclick="quickTweak('shorter')" class="text-[11px] text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100">Shorter</button>
+                        <button onclick="quickTweak('friendlier')" class="text-[11px] text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100">Friendlier</button>
+                        <button onclick="quickTweak('technical')" class="text-[11px] text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100">Technical</button>
+                        <button onclick="quickTweak('confident')" class="text-[11px] text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100">Confident</button>
+                    </div>
+
+                    <!-- Info Cards -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="info-card">
+                            <div class="info-title">Similar Projects</div>
+                            <div id="similar-projects"><p class="text-xs text-neutral-400">None found</p></div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-title">Portfolio Links</div>
+                            <div id="portfolio-links"><p class="text-xs text-neutral-400">None included</p></div>
+                        </div>
+                    </div>
+
+                    <!-- Reset -->
+                    <button onclick="resetForm()" class="w-full py-2 text-xs text-neutral-400 hover:text-neutral-600">
+                        ← Start over
+                    </button>
+                </div>
+
+                <!-- Similar Past Proposal Result -->
+                <div id="similar-job-state" class="hidden mt-4 bg-white border border-neutral-200 rounded-xl overflow-hidden">
+                    <div class="px-5 py-3 border-b border-neutral-100 flex items-center justify-between bg-neutral-50">
+                        <div class="flex items-center gap-2">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <h3 class="text-sm font-semibold text-neutral-900">Similar Past Proposals</h3>
+                            <span id="similar-job-count" class="text-[11px] text-neutral-500"></span>
+                        </div>
+                        <button type="button" onclick="document.getElementById('similar-job-state').classList.add('hidden')" class="text-neutral-400 hover:text-neutral-700 text-xs">Close</button>
+                    </div>
+                    <div id="similar-job-body" class="p-3 text-sm text-neutral-800 space-y-2"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Hook Question Selection Modal -->
+    <div class="hq-overlay" id="hq-overlay">
+        <div class="hq-modal">
+            <div class="p-6 border-b border-neutral-100">
+                <div class="flex items-center gap-3 mb-1">
+                    <div class="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-neutral-900">Choose an Opening Question</h3>
+                </div>
+                <p class="text-xs text-neutral-500 ml-11">Select a question to use as your proposal opener, or write your own</p>
+            </div>
+            <div class="p-5 space-y-3" id="hq-questions-list">
+                <!-- Questions will be injected here -->
+                <div class="flex items-center justify-center py-8">
+                    <div class="loader"></div>
+                    <span class="ml-3 text-sm text-neutral-400">Analyzing job requirements...</span>
+                </div>
+            </div>
+            <!-- Custom question input -->
+            <div class="px-5 pb-4">
+                <div class="relative">
+                    <input type="text" id="hq-custom-input" class="input-field text-sm pr-10" placeholder="Or write your own question...">
+                    <button onclick="selectCustomQuestion()" class="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-900 p-1" title="Use custom question">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="px-5 pb-5 flex items-center justify-between">
+                <button onclick="skipHookQuestion()" class="text-xs text-neutral-400 hover:text-neutral-600 px-3 py-2 rounded hover:bg-neutral-50">Skip — generate without question</button>
+                <button onclick="confirmHookQuestion()" id="hq-confirm-btn" class="btn-primary text-sm px-5 py-2.5" disabled>Use Selected Question</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script>
+        const KEY_NAME = 'app_api_key';
+        let apiKey = localStorage.getItem(KEY_NAME) || '';
+        let userRole = null;
+        let currentSkills = [], includeTimeline = false, isEditMode = false, originalProposalText = '';
+        let lastRequestData = null, lastGeneratedResult = null, proposalSaved = false;
+        let selectedHookQuestion = null; // Currently selected hook question
+        let pendingGenerateData = null; // Data waiting for hook question selection
+
+        // Axios config
+        axios.interceptors.request.use(c => { if (apiKey) c.headers['X-API-Key'] = apiKey; return c; });
+        axios.interceptors.response.use(r => r, e => { if ([401, 403].includes(e.response?.status)) showAuth(); return Promise.reject(e); });
+
+        document.addEventListener('DOMContentLoaded', () => apiKey ? verifyAndLoad() : showAuth());
+
+        function showAuth() { document.getElementById('auth-overlay').classList.remove('hidden'); document.getElementById('api-key-input').focus(); }
+        function hideAuth() { document.getElementById('auth-overlay').classList.add('hidden'); }
+        function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show'; setTimeout(() => t.classList.remove('show'), 2000); }
+
+        function toggleKeyVisibility() {
+            const input = document.getElementById('api-key-input');
+            const icon = document.getElementById('eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+            } else {
+                input.type = 'password';
+                icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+            }
+        }
+
+        async function verifyAndLoad() {
+            try {
+                const { data } = await axios.get(`${API}/auth/verify`);
+                userRole = data.role;
+                currentOrgId = data.org_id;  // Multi-tenant context
+                currentUserId = data.user_id;
+                hideAuth();
+                updateNav();
+                // Get first profile for this org
+                if (currentOrgId) {
+                    try {
+                        const profileRes = await axios.get(`${API}/profiles?org_id=${currentOrgId}`);
+                        if (profileRes.data.profiles?.length > 0) {
+                            currentProfileId = profileRes.data.profiles[0].profile_id;
+                        }
+                    } catch (e) { console.log('No profiles yet'); }
+                }
+            } catch { apiKey = ''; localStorage.removeItem(KEY_NAME); showAuth(); }
+        }
+
+        async function authenticate(e) {
+            e.preventDefault();
+            const btn = document.getElementById('auth-btn'), err = document.getElementById('auth-error');
+            apiKey = document.getElementById('api-key-input').value.trim();
+            if (!apiKey) { err.textContent = 'Please enter your API key'; return; }
+            btn.disabled = true; btn.innerHTML = '<div class="loader mx-auto"></div>';
+            err.textContent = '';
+            try {
+                const { data } = await axios.get(`${API}/auth/verify`);
+                userRole = data.role;
+                currentOrgId = data.org_id;  // Multi-tenant context
+                currentUserId = data.user_id;
+                if (document.getElementById('remember-key').checked) localStorage.setItem(KEY_NAME, apiKey);
+                hideAuth();
+                updateNav();
+                // Get first profile for this org
+                if (currentOrgId) {
+                    try {
+                        const profileRes = await axios.get(`${API}/profiles?org_id=${currentOrgId}`);
+                        if (profileRes.data.profiles?.length > 0) {
+                            currentProfileId = profileRes.data.profiles[0].profile_id;
+                        }
+                    } catch (e) { console.log('No profiles yet'); }
+                }
+            } catch { err.textContent = 'Invalid API key'; apiKey = ''; }
+            btn.disabled = false; btn.innerHTML = '<span>Continue</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+        }
+
+        function updateNav() {
+            const isSuper = userRole === 'super_admin';
+            const isAdmin = userRole === 'admin' || isSuper;
+            
+            document.getElementById('nav-analytics').style.display = isAdmin ? 'flex' : 'none';
+            document.getElementById('nav-history').style.display = isAdmin ? 'flex' : 'none';
+            document.getElementById('nav-training').style.display = isAdmin ? 'flex' : 'none';
+            document.getElementById('nav-admin').style.display = isSuper ? 'flex' : 'none';
+            document.getElementById('logout-btn').style.display = 'flex';
+            document.getElementById('user-badge').style.display = 'flex';
+            document.getElementById('user-role').textContent = isSuper ? 'Super Admin' : isAdmin ? 'Admin' : 'User';
+        }
+
+        function logout() { apiKey = ''; userRole = null; localStorage.removeItem(KEY_NAME); location.reload(); }
+
+        function toggleTimeline() {
+            includeTimeline = !includeTimeline;
+            document.getElementById('timeline-toggle').classList.toggle('active', includeTimeline);
+            document.getElementById('timeline-input').classList.toggle('hidden', !includeTimeline);
+        }
+
+        function addSkills() {
+            const input = document.getElementById('skill-input');
+            const skills = input.value.split(',').map(s => s.trim()).filter(s => s && !currentSkills.includes(s));
+            if (skills.length) { currentSkills.push(...skills); renderSkills(); input.value = ''; }
+        }
+
+        function removeSkill(skill) { currentSkills = currentSkills.filter(s => s !== skill); renderSkills(); }
+        
+        function renderSkills() {
+            document.getElementById('skills-container').innerHTML = currentSkills.map(s => 
+                `<div class="skill-tag">${s}<button onclick="removeSkill('${s}')">×</button></div>`
+            ).join('');
+        }
+
+        function copyToClipboard() { 
+            navigator.clipboard.writeText(document.getElementById('proposal-text').innerText).then(() => showToast('Copied!')); 
+        }
+
+        function formatLink(url) { try { return new URL(url).hostname.replace('www.', ''); } catch { return url; } }
+
+        async function saveAndSend() {
+            if (!lastGeneratedResult || !lastRequestData) { showToast('Generate first'); return; }
+            if (proposalSaved) { showToast('Already saved!'); return; }
+            const btn = document.getElementById('save-send-btn');
+            btn.disabled = true; btn.innerHTML = '<div class="loader"></div>';
+            try {
+                const proposalText = document.getElementById('proposal-text').innerText;
+                await axios.post(`${API}/proposals/save`, {
+                    job_title: lastRequestData.job_title, company_name: lastRequestData.company_name,
+                    job_description: lastRequestData.job_description, proposal_text: proposalText,
+                    skills_required: lastRequestData.skills_required, industry: lastRequestData.industry || 'general',
+                    task_type: lastRequestData.task_type || 'other',
+                    word_count: proposalText.trim().split(/\s+/).filter(w => w).length,
+                    similar_projects_used: (lastGeneratedResult.similar_projects || []).map(p => p.contract_id).filter(Boolean),
+                    portfolio_links_used: lastGeneratedResult.portfolio_links_used || [],
+                    confidence_score: lastGeneratedResult.confidence_score || 0, source: 'ai_generated'
+                });
+                proposalSaved = true;
+                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Saved';
+                btn.classList.remove('primary'); btn.style.background = '#22c55e'; btn.style.color = '#fff';
+                showToast('Saved!');
+            } catch { showToast('Save failed'); btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Save'; }
+        }
+
+        function resetForm() {
+            document.getElementById('result-state').classList.add('hidden');
+            document.getElementById('empty-state').classList.remove('hidden');
+            isEditMode = false; originalProposalText = ''; proposalSaved = false; lastGeneratedResult = null;
+            const saveBtn = document.getElementById('save-send-btn');
+            saveBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Save';
+            saveBtn.disabled = false; saveBtn.style.background = ''; saveBtn.style.color = ''; saveBtn.classList.add('primary');
+        }
+
+        function toggleEditMode() {
+            const el = document.getElementById('proposal-text'), btn = document.getElementById('edit-btn-text'), banner = document.getElementById('edit-mode-banner');
+            if (!isEditMode) {
+                isEditMode = true; originalProposalText = el.innerText;
+                el.setAttribute('contenteditable', 'true'); el.classList.remove('proposal-body'); el.classList.add('proposal-body-editable'); el.focus();
+                btn.textContent = 'Editing...'; document.getElementById('edit-btn').classList.add('primary'); banner.classList.remove('hidden');
+            } else { saveEdit(); }
+        }
+
+        function saveEdit() {
+            const el = document.getElementById('proposal-text'), btn = document.getElementById('edit-btn-text'), banner = document.getElementById('edit-mode-banner');
+            isEditMode = false; el.setAttribute('contenteditable', 'false'); el.classList.remove('proposal-body-editable'); el.classList.add('proposal-body');
+            btn.textContent = 'Edit'; document.getElementById('edit-btn').classList.remove('primary'); banner.classList.add('hidden');
+            document.getElementById('word-count').textContent = el.innerText.trim().split(/\s+/).filter(w => w).length;
+            showToast('Saved');
+        }
+
+        function cancelEdit() {
+            const el = document.getElementById('proposal-text');
+            isEditMode = false; el.innerText = originalProposalText;
+            el.setAttribute('contenteditable', 'false'); el.classList.remove('proposal-body-editable'); el.classList.add('proposal-body');
+            document.getElementById('edit-btn-text').textContent = 'Edit';
+            document.getElementById('edit-btn').classList.remove('primary');
+            document.getElementById('edit-mode-banner').classList.add('hidden');
+        }
+
+        async function quickTweak(type) {
+            if (!lastRequestData) { showToast('Generate first'); return; }
+            const data = { ...lastRequestData };
+            if (type === 'shorter') data.max_word_count = Math.max(100, (data.max_word_count || 150) - 50);
+            else if (type === 'friendlier') { data.tone = 'friendly'; data.proposal_style = 'casual'; }
+            else if (type === 'technical') { data.proposal_style = 'technical'; data.tone = 'analytical'; }
+            else if (type === 'confident') data.tone = 'confident';
+            showToast('Adjusting...');
+            try {
+                const { data: result } = await axios.post(`${API}/proposals/generate`, data);
+                document.getElementById('proposal-text').innerText = result.generated_proposal;
+                document.getElementById('word-count').innerText = result.word_count;
+                document.getElementById('quality-score').innerText = Math.round((result.confidence_score || 0.85) * 100) + '%';
+                showToast('Done');
+            } catch { showToast('Error'); }
+        }
+
+        // Step progress helpers
+        let elapsedTimer = null;
+        let startTime = null;
+        
+        function startElapsedTimer() {
+            startTime = Date.now();
+            const timerEl = document.getElementById('elapsed-time');
+            if (elapsedTimer) clearInterval(elapsedTimer);
+            elapsedTimer = setInterval(() => {
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                timerEl.textContent = elapsed + 's';
+            }, 100);
+        }
+        
+        function stopElapsedTimer() {
+            if (elapsedTimer) {
+                clearInterval(elapsedTimer);
+                elapsedTimer = null;
+            }
+        }
+        
+        function updateStep(stepNum, message, done = false) {
+            const step = document.querySelector(`[data-step="${stepNum}"]`);
+            if (!step) return;
+            const msg = step.querySelector('.step-message');
+            const iconDefault = step.querySelector('.icon-default');
+            const iconActive = step.querySelector('.icon-active');
+            const iconDone = step.querySelector('.icon-done');
+            const iconContainer = step.querySelector('.step-icon');
+            const badge = step.querySelector('.step-badge');
+            
+            msg.textContent = message;
+            
+            if (done) {
+                msg.classList.remove('text-neutral-400', 'text-neutral-600');
+                msg.classList.add('text-green-600');
+                iconDefault.classList.add('hidden');
+                iconActive.classList.add('hidden');
+                iconDone.classList.remove('hidden');
+                iconContainer.classList.remove('bg-neutral-100', 'bg-blue-100');
+                iconContainer.classList.add('bg-green-50');
+                if (badge) badge.classList.remove('hidden');
+                step.classList.add('bg-green-50/30');
+            } else {
+                msg.classList.remove('text-neutral-400');
+                msg.classList.add('text-neutral-600');
+                iconDefault.classList.add('hidden');
+                iconActive.classList.remove('hidden');
+                iconDone.classList.add('hidden');
+                iconContainer.classList.remove('bg-neutral-100');
+                iconContainer.classList.add('bg-blue-100');
+                if (badge) badge.classList.add('hidden');
+                step.classList.remove('bg-green-50/30');
+            }
+        }
+        
+        function resetSteps() {
+            // Reset timer
+            stopElapsedTimer();
+            document.getElementById('elapsed-time').textContent = '0.0s';
+            
+            // Reset all original step messages
+            const defaultMessages = [
+                'Analyzing job requirements',
+                'Finding similar projects',
+                'Gathering evidence',
+                'Building prompt',
+                'Writing proposal',
+                'Quality check'
+            ];
+            
+            document.querySelectorAll('[data-step]').forEach((step, index) => {
+                const msg = step.querySelector('.step-message');
+                const iconDefault = step.querySelector('.icon-default');
+                const iconActive = step.querySelector('.icon-active');
+                const iconDone = step.querySelector('.icon-done');
+                const iconContainer = step.querySelector('.step-icon');
+                const badge = step.querySelector('.step-badge');
+                
+                msg.textContent = defaultMessages[index] || msg.textContent;
+                msg.classList.remove('text-green-600', 'text-neutral-600');
+                msg.classList.add('text-neutral-400');
+                iconDefault.classList.remove('hidden');
+                iconActive.classList.add('hidden');
+                iconDone.classList.add('hidden');
+                iconContainer.classList.remove('bg-green-50', 'bg-blue-100');
+                iconContainer.classList.add('bg-neutral-100');
+                if (badge) badge.classList.add('hidden');
+                step.classList.remove('bg-green-50/30');
+            });
+            document.getElementById('streaming-preview').classList.add('hidden');
+            document.getElementById('streaming-text').textContent = '';
+        }
+
+        document.getElementById('proposal-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentSkills.length) { showToast('Add at least one skill'); return; }
+            const jobDesc = document.getElementById('job_description').value;
+            const data = {
+                company_name: (jobDesc.match(/(?:company|client)[\s:]+([^\n]+)/i)?.[1] || 'Client').substring(0, 50),
+                job_title: (jobDesc.match(/^(.+?)(?:\s*[-–]\s*|$)/)?.[1] || 'Project').substring(0, 50),
+                job_description: jobDesc, skills_required: currentSkills, industry: 'general', task_type: 'auto',
+                proposal_style: 'professional', tone: 'confident', max_word_count: 150, similar_projects_count: 3,
+                include_portfolio: true, include_feedback: true, include_previous_proposals: true,
+                include_timeline: includeTimeline, timeline_duration: document.getElementById('timeline_duration').value.trim() || null,
+                org_id: currentOrgId || null,
+                profile_id: currentProfileId || null
+            };
+            pendingGenerateData = data;
+            selectedHookQuestion = null;
+            showHookQuestionModal(data);
+        });
+
+        // ===== Find Similar Past Project =====
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function copySimilarProposal(btn) {
+            const text = btn.getAttribute('data-text') || '';
+            try {
+                navigator.clipboard.writeText(text);
+                const orig = btn.textContent;
+                btn.textContent = 'Copied';
+                setTimeout(() => { btn.textContent = orig; }, 1200);
+            } catch (e) { showToast('Copy failed'); }
+        }
+
+        function renderSimilarMatchCard(match, index, isOpen) {
+            const title = escapeHtml(match.title || '') || `Match #${index + 1}`;
+            const industry = escapeHtml(match.industry || '') || '';
+            const platform = escapeHtml(match.platform || '') || '';
+            const skillsArr = Array.isArray(match.skills) ? match.skills : [];
+            const proposalText = match.proposal || '';
+            const jobPostText = match.job_post || '';
+            const conf = (match.confidence || '').toLowerCase();
+            const pct = match.similarity_score != null
+                ? `${(match.similarity_score * 100).toFixed(1)}%`
+                : '';
+
+            const confBadge = conf === 'strong'
+                ? '<span class="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded">strong</span>'
+                : conf === 'weak'
+                    ? '<span class="text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">weak</span>'
+                    : '<span class="text-[10px] font-medium text-neutral-500 bg-neutral-100 border border-neutral-200 px-1.5 py-0.5 rounded">low</span>';
+
+            const skills = skillsArr.length
+                ? skillsArr.map(x => `<span class="inline-block px-2 py-0.5 bg-neutral-100 text-neutral-700 rounded text-xs mr-1 mb-1">${escapeHtml(x)}</span>`).join('')
+                : '<span class="text-neutral-400 text-xs">—</span>';
+
+            const proposalEsc = escapeHtml(proposalText);
+            const dataAttr = proposalText.replace(/"/g, '&quot;');
+
+            return `
+                <details class="border border-neutral-200 rounded-lg bg-white" ${isOpen ? 'open' : ''}>
+                    <summary class="cursor-pointer px-4 py-3 hover:bg-neutral-50 select-none flex items-center gap-2">
+                        <span class="text-[11px] font-mono text-neutral-400 w-5">#${index + 1}</span>
+                        <span class="font-medium text-neutral-900 flex-1 truncate">${title}</span>
+                        ${platform ? `<span class="text-[11px] text-neutral-500">${platform}</span>` : ''}
+                        ${confBadge}
+                        ${pct ? `<span class="text-[11px] font-mono text-neutral-600 bg-neutral-100 px-1.5 py-0.5 rounded" title="Cosine similarity between job descriptions">${pct}</span>` : ''}
+                    </summary>
+                    <div class="px-4 pb-4 pt-1 space-y-3 text-sm">
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs uppercase tracking-wide text-neutral-400">Past Proposal</div>
+                            <button type="button" onclick="copySimilarProposal(this)" data-text="${dataAttr}" class="text-[11px] px-2 py-1 border border-neutral-200 rounded hover:bg-neutral-50">Copy</button>
+                        </div>
+                        <div class="bg-neutral-50 border border-neutral-100 rounded-lg p-3 text-neutral-800 whitespace-pre-wrap leading-relaxed">${proposalEsc || '<span class="text-neutral-400 text-xs">—</span>'}</div>
+
+                        ${industry || skillsArr.length ? `
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <div class="text-xs uppercase tracking-wide text-neutral-400 mb-1">Industry</div>
+                                    <div>${industry || '<span class="text-neutral-400 text-xs">—</span>'}</div>
+                                </div>
+                                <div>
+                                    <div class="text-xs uppercase tracking-wide text-neutral-400 mb-1">Skills</div>
+                                    <div>${skills}</div>
+                                </div>
+                            </div>` : ''}
+
+                        ${jobPostText ? `
+                            <details class="border-t border-neutral-100 pt-2">
+                                <summary class="cursor-pointer text-xs text-neutral-500 hover:text-neutral-800">Show original job post</summary>
+                                <div class="mt-2 p-3 bg-white border border-neutral-100 rounded-lg text-[12px] text-neutral-700 whitespace-pre-wrap">${escapeHtml(jobPostText)}</div>
+                            </details>` : ''}
+                    </div>
+                </details>
+            `;
+        }
+
+        function renderSimilarJob(payload) {
+            const wrap = document.getElementById('similar-job-state');
+            const body = document.getElementById('similar-job-body');
+            const countEl = document.getElementById('similar-job-count');
+
+            const matches = (payload && Array.isArray(payload.matches)) ? payload.matches : [];
+            const hasMatch = !!(payload && payload.has_match);
+
+            if (!hasMatch) {
+                const msg = (payload && payload.message) || 'No similar past proposal found for this job description.';
+                body.innerHTML = `
+                    <div class="px-4 py-6 text-center">
+                        <p class="text-neutral-600 text-sm mb-1">${escapeHtml(msg)}</p>
+                        ${matches.length ? `<p class="text-[11px] text-neutral-400">Top candidate scored too low to be reliable${matches[0].similarity_score != null ? ` (${(matches[0].similarity_score * 100).toFixed(1)}%)` : ''}.</p>` : ''}
+                    </div>`;
+                if (countEl) countEl.textContent = '';
+                wrap.classList.remove('hidden');
+                return;
+            }
+
+            if (countEl) countEl.textContent = `${matches.length} result${matches.length === 1 ? '' : 's'}`;
+            body.innerHTML = matches.map((m, i) => renderSimilarMatchCard(m, i, i === 0)).join('');
+            wrap.classList.remove('hidden');
+        }
+
+        document.getElementById('similar-job-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('similar-job-btn');
+            const label = document.getElementById('similar-job-btn-label');
+            const jobDesc = document.getElementById('job_description').value.trim();
+            if (!jobDesc) { showToast('Paste a job description first'); return; }
+
+            const title = (jobDesc.match(/^(.+?)(?:\s*[-–]\s*|\n|$)/)?.[1] || 'Project').substring(0, 120);
+
+            const originalLabel = label.textContent;
+            btn.disabled = true;
+            label.textContent = 'Searching past proposals…';
+
+            try {
+                const { data: result } = await axios.post(`${API}/proposals/similar-job`, {
+                    title,
+                    description: jobDesc,
+                    skills_required: Array.isArray(currentSkills) ? currentSkills : [],
+                    top_k: 3
+                });
+                renderSimilarJob(result);
+            } catch (err) {
+                console.error('similar-job error', err);
+                const msg = err?.response?.data?.detail || err.message || 'Lookup failed';
+                showToast(msg);
+            } finally {
+                btn.disabled = false;
+                label.textContent = originalLabel;
+            }
+        });
+
+        // ===== Hook Question Flow =====
+        async function showHookQuestionModal(data) {
+            const overlay = document.getElementById('hq-overlay');
+            const list = document.getElementById('hq-questions-list');
+            const confirmBtn = document.getElementById('hq-confirm-btn');
+            const customInput = document.getElementById('hq-custom-input');
+            
+            // Reset state
+            confirmBtn.disabled = true;
+            customInput.value = '';
+            selectedHookQuestion = null;
+            list.innerHTML = '<div class="flex items-center justify-center py-8"><div class="loader"></div><span class="ml-3 text-sm text-neutral-400">Analyzing job requirements...</span></div>';
+            overlay.classList.add('visible');
+            
+            try {
+                const { data: result } = await axios.post(`${API}/proposals/suggest-questions`, {
+                    job_description: data.job_description,
+                    job_title: data.job_title,
+                    skills_required: data.skills_required,
+                    org_id: data.org_id
+                });
+                
+                if (result.success && result.questions.length > 0) {
+                    list.innerHTML = result.questions.map((q, i) => `
+                        <div class="hq-card" onclick="selectHookQuestion(this, '${i}')" data-question="${encodeURIComponent(q.question_text)}">
+                            <div class="flex items-start gap-3">
+                                <div class="w-6 h-6 rounded-full border-2 border-neutral-200 flex items-center justify-center shrink-0 mt-0.5 hq-radio">
+                                    <div class="w-3 h-3 rounded-full bg-neutral-900 scale-0 transition-transform hq-dot"></div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm text-neutral-800 leading-relaxed">${q.question_text}</p>
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <span class="hq-badge ${q.category}">${q.category.replace('_', ' ')}</span>
+                                        <span class="text-[10px] text-neutral-400">${q.relevance_reason}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = '<p class="text-sm text-neutral-400 text-center py-6">No questions generated. You can write your own below or skip.</p>';
+                }
+            } catch (err) {
+                list.innerHTML = '<p class="text-sm text-neutral-400 text-center py-6">Could not load suggestions. Write your own or skip.</p>';
+            }
+        }
+
+        function selectHookQuestion(card, idx) {
+            // Deselect all
+            document.querySelectorAll('.hq-card').forEach(c => {
+                c.classList.remove('selected');
+                const dot = c.querySelector('.hq-dot');
+                if (dot) dot.style.transform = 'scale(0)';
+            });
+            // Select this one
+            card.classList.add('selected');
+            const dot = card.querySelector('.hq-dot');
+            if (dot) dot.style.transform = 'scale(1)';
+            selectedHookQuestion = decodeURIComponent(card.dataset.question);
+            document.getElementById('hq-confirm-btn').disabled = false;
+            document.getElementById('hq-custom-input').value = '';
+        }
+
+        function selectCustomQuestion() {
+            const val = document.getElementById('hq-custom-input').value.trim();
+            if (!val) { showToast('Type a question first'); return; }
+            // Deselect cards
+            document.querySelectorAll('.hq-card').forEach(c => {
+                c.classList.remove('selected');
+                const dot = c.querySelector('.hq-dot');
+                if (dot) dot.style.transform = 'scale(0)';
+            });
+            selectedHookQuestion = val;
+            document.getElementById('hq-confirm-btn').disabled = false;
+            showToast('Custom question selected');
+        }
+
+        // Listen for Enter on custom input
+        document.getElementById('hq-custom-input')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); selectCustomQuestion(); }
+        });
+
+        function confirmHookQuestion() {
+            if (!selectedHookQuestion || !pendingGenerateData) return;
+            document.getElementById('hq-overlay').classList.remove('visible');
+            pendingGenerateData.selected_hook_question = selectedHookQuestion;
+            startProposalGeneration(pendingGenerateData);
+        }
+
+        function skipHookQuestion() {
+            document.getElementById('hq-overlay').classList.remove('visible');
+            if (pendingGenerateData) startProposalGeneration(pendingGenerateData);
+        }
+
+        async function startProposalGeneration(data) {
+            lastRequestData = data;
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('result-state').classList.add('hidden');
+            document.getElementById('loading-state').classList.remove('hidden');
+            resetSteps();
+            startElapsedTimer();
+            const btn = document.getElementById('generate-btn');
+            btn.disabled = true; btn.innerHTML = '<div class="loader mx-auto"></div>';
+            
+            // Use streaming endpoint with EventSource
+            try {
+                const response = await fetch(`${API}/proposals/generate-stream`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let streamingText = '';
+                let resultData = null;
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop(); // Keep incomplete line in buffer
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('event: ')) {
+                            const eventType = line.replace('event: ', '');
+                            continue;
+                        }
+                        if (line.startsWith('data: ')) {
+                            const jsonStr = line.replace('data: ', '');
+                            try {
+                                const eventData = JSON.parse(jsonStr);
+                                
+                                // Handle step updates
+                                if (eventData.step !== undefined) {
+                                    updateStep(eventData.step, eventData.message, eventData.done);
+                                }
+                                
+                                // Handle streaming tokens
+                                if (eventData.text !== undefined) {
+                                    streamingText += eventData.text;
+                                    const preview = document.getElementById('streaming-preview');
+                                    const textEl = document.getElementById('streaming-text');
+                                    preview.classList.remove('hidden');
+                                    textEl.textContent = streamingText;
+                                    textEl.scrollTop = textEl.scrollHeight;
+                                }
+                                
+                                // Handle completion
+                                if (eventData.success !== undefined) {
+                                    resultData = eventData;
+                                }
+                                
+                                // Handle error
+                                if (eventData.message && !eventData.step) {
+                                    throw new Error(eventData.message);
+                                }
+                            } catch (parseErr) {
+                                // Skip parse errors for incomplete JSON
+                            }
+                        }
+                    }
+                }
+                
+                if (resultData) {
+                    stopElapsedTimer();
+                    lastGeneratedResult = resultData; proposalSaved = false;
+                    const saveBtn = document.getElementById('save-send-btn');
+                    saveBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Save';
+                    saveBtn.disabled = false; saveBtn.style.background = ''; saveBtn.style.color = ''; saveBtn.classList.add('primary');
+                    document.getElementById('proposal-text').innerText = resultData.generated_proposal;
+                    document.getElementById('word-count').innerText = resultData.word_count;
+                    document.getElementById('quality-score').innerText = Math.round((resultData.confidence_score || 0.85) * 100) + '%';
+                    const projects = resultData.similar_projects || [];
+                    document.getElementById('similar-projects').innerHTML = projects.length
+                        ? projects.map(p => `<div class="project-item"><p class="text-xs font-medium text-neutral-700">${p.company}</p><p class="text-[10px] text-neutral-400 mt-0.5">${(p.skills || []).slice(0, 3).join(' · ')}</p></div>`).join('')
+                        : '<p class="text-xs text-neutral-400">None found</p>';
+                    const links = resultData.portfolio_links_used || [];
+                    document.getElementById('portfolio-links').innerHTML = links.length
+                        ? links.map(url => `<a href="${url}" target="_blank" class="link-item">${formatLink(url)}</a>`).join('')
+                        : '<p class="text-xs text-neutral-400">None included</p>';
+                    document.getElementById('loading-state').classList.add('hidden');
+                    document.getElementById('result-state').classList.remove('hidden');
+                } else {
+                    throw new Error('No result received');
+                }
+            } catch (err) { 
+                stopElapsedTimer();
+                showToast('Error: ' + (err.message || 'Generation failed')); 
+                document.getElementById('loading-state').classList.add('hidden'); 
+                document.getElementById('empty-state').classList.remove('hidden'); 
+            }
+            finally { btn.disabled = false; btn.innerHTML = 'Generate Proposal'; }
+        }
+
+        document.getElementById('skill-input').addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); addSkills(); } });
+        document.addEventListener('keydown', e => { 
+            if (e.key === 'Escape') {
+                if (document.getElementById('hq-overlay').classList.contains('visible')) {
+                    skipHookQuestion();
+                } else if (isEditMode) {
+                    cancelEdit();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
